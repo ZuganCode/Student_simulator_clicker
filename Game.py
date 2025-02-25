@@ -5,6 +5,7 @@ import sys
 import os
 from pygame.locals import RESIZABLE
 
+
 # Инициализация Pygame
 pygame.init()
 
