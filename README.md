@@ -1,4 +1,4 @@
-##Student_simulator_clicker
+## Student_simulator_clicker
 
 ## Установка
 
