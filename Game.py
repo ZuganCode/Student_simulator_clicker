@@ -55,7 +55,7 @@ PROLOGUE_DATA = [
     {"image": "png\prologue1.png", "text": "Вы начинаете свой путь в университете...", "duration": 1000},
     {"image": "png\prologue2.png", "text": "Мама: Учись, сынок, диплом — это твоё будущее", "duration": 1000},
     {"image": "png\prologue3.png", "text": "Новенький? На вахте узнай куда тебе.", "duration": 1000},
-    {"image": "png\prologue3.png", "text": "* сосед храпит, а за стенкой, кто-то играет на гитаре и поёт песни* \n Не могу уснуть, посмотрю, что в соцсетях. ", "duration": 1000},
+    {"image": "png\prologue4.png", "text": "* сосед храпит, а за стенкой, кто-то играет на гитаре и поёт песни* \n Не могу уснуть, посмотрю, что в соцсетях. ", "duration": 1000},
     {"image": "png\prologue3.png", "text": "Кто-то из одногруппников купил машину, а кто-то только вернулся из поездки в Дубай. А я тут, в этой клетке 3x4 метра, с мечтой о дипломе, который, как уверяют, «откроет все двери». ", "duration": 1000},
     {"image": "png\prologue3.png", "text": "Но двери — это не то, что я хотел. Всю ночь я ворочался, слушая, как за стеной кто-то играл на гитаре.", "duration": 1000},
     {"image": "png\prologue3.png", "text": "Почему я должен жить в этом сером мире, когда хочу туда. Мне нужен не диплом и выживание. Мне нужна та жизнь, та машина и хороший дом. То что скажет за меня, что я не из чёртовой общаги. ", "duration": 1000},
@@ -714,24 +714,28 @@ def handle_mouse_events(mouse_pos, state, game, current_plot_text, settings_butt
                 game.save_game()
             return "main_menu", current_plot_text
 
-        # Обработка кнопок раздела "display"
+            # Проверяем клики по кнопкам настроек экрана
         if current_settings_section == SETTINGS_SECTIONS["display"]:
             settings = load_settings()
             current_resolution = settings["resolution"]
             current_mode = settings["display_mode"]
-            if buttons["settings"]["display"]["hd"].is_clicked(mouse_pos):
-                pygame.display.set_mode((1280, 720), RESIZABLE)
-                save_settings([1280, 720])
-            elif buttons["settings"]["display"]["fhd"].is_clicked(mouse_pos):
-                pygame.display.set_mode((1920, 1080), RESIZABLE)
-                save_settings([1920, 1080])
-            elif buttons["settings"]["display"]["qhd"].is_clicked(mouse_pos):
-                pygame.display.set_mode((2560, 1440), RESIZABLE)
-                save_settings([2560, 1440])
 
-        # Обработка кнопок раздела "sound"
-        elif current_settings_section == SETTINGS_SECTIONS["sound"]:
-            pass  # Здесь будет код для настроек звука
+            # Обработка кнопок разрешения
+            if buttons["settings"]["display"]["hd"].is_clicked(mouse_pos):
+                current_resolution = [1280, 720]
+            elif buttons["settings"]["display"]["fhd"].is_clicked(mouse_pos):
+                current_resolution = [1920, 1080]
+            elif buttons["settings"]["display"]["qhd"].is_clicked(mouse_pos):
+                current_resolution = [2560, 1440]
+
+            # Обработка кнопок режима отображения
+            for mode in DISPLAY_MODES:
+                if buttons["settings"]["display"]["display_mode"][mode].is_clicked(mouse_pos):
+                    current_mode = mode
+
+            # Применяем настройки
+            save_settings(current_resolution, current_mode)
+            screen = apply_display_mode(current_resolution, current_mode)
 
     elif state == "shop":
         if game.current_shop_category in game.shop_items:
