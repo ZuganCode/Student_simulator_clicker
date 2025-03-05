@@ -6,6 +6,7 @@ import os
 from pygame.locals import RESIZABLE
 
 
+
 # Инициализация Pygame
 pygame.init()
 
@@ -51,21 +52,21 @@ DISPLAY_MODES = {
 
 # Пролог
 PROLOGUE_DATA = [
-    {"image": "prologue1.png", "text": "Вы начинаете свой путь в университете...", "duration": 1000},
-    {"image": "prologue2.png", "text": "Мама: Учись, сынок, диплом — это твоё будущее", "duration": 1000},
-    {"image": "prologue3.png", "text": "Новенький? На вахте узнай куда тебе.", "duration": 1000},
-    {"image": "prologue3.png", "text": "* сосед храпит, а за стенкой, кто-то играет на гитаре и поёт песни* \n Не могу уснуть, посмотрю, что в соцсетях. ", "duration": 1000},
-    {"image": "prologue3.png", "text": "Кто-то из одногруппников купил машину, а кто-то только вернулся из поездки в Дубай. А я тут, в этой клетке 3x4 метра, с мечтой о дипломе, который, как уверяют, «откроет все двери». ", "duration": 1000},
-    {"image": "prologue3.png", "text": "Но двери — это не то, что я хотел. Всю ночь я ворочался, слушая, как за стеной кто-то играл на гитаре.", "duration": 1000},
-    {"image": "prologue3.png", "text": "Почему я должен жить в этом сером мире, когда хочу туда. Мне нужен не диплом и выживание. Мне нужна та жизнь, та машина и хороший дом. То что скажет за меня, что я не из чёртовой общаги. ", "duration": 1000},
-    {"image": "prologue3.png", "text": "Сосед: Да, есть килл!", "duration": 1000},
-    {"image": "prologue3.png", "text": "«Четыре года, — прошептал я. — Четыре года, чтобы заработать на ту жизнь. Но как?».", "duration": 1000},
-    {"image": "prologue3.png", "text": "«Учёба, лабы, сессии... А если не сдашь — армия. Но если только учиться, когда зарабатывать?»", "duration": 1000},
-    {"image": "prologue3.png", "text": "В интернете нашёл и прочитал про майнинг, подработки, трейдин и как прокачаться с нуля. «Надо крутиться. Учёба – чтобы не отчислили. Заработок – чтобы не сойти с ума от безнадёги»  ", "duration": 1000},
-    {"image": "prologue3.png", "text": "Пока сосед играл я не могу уснуть и изучал всё что мне может пригодиться, чтобы вылезти из этой ситуации. Так я и просидел до 3-х ночи.  ", "duration": 1000},
-    {"image": "prologue3.png", "text": "Аааа, спать охота.  ", "duration": 1000},
-    {"image": "prologue3.png", "text": "Преподаватель: «Молодой человек, если не сдадите лабу до пятницы, будете в армии отсыпаться!».  ", "duration": 1000},
-    {"image": "prologue3.png", "text": "Чем же в итоге заниматься?  ", "duration": 1000},
+    {"image": "png\prologue1.png", "text": "Вы начинаете свой путь в университете...", "duration": 1000},
+    {"image": "png\prologue2.png", "text": "Мама: Учись, сынок, диплом — это твоё будущее", "duration": 1000},
+    {"image": "png\prologue3.png", "text": "Новенький? На вахте узнай куда тебе.", "duration": 1000},
+    {"image": "png\prologue3.png", "text": "* сосед храпит, а за стенкой, кто-то играет на гитаре и поёт песни* \n Не могу уснуть, посмотрю, что в соцсетях. ", "duration": 1000},
+    {"image": "png\prologue3.png", "text": "Кто-то из одногруппников купил машину, а кто-то только вернулся из поездки в Дубай. А я тут, в этой клетке 3x4 метра, с мечтой о дипломе, который, как уверяют, «откроет все двери». ", "duration": 1000},
+    {"image": "png\prologue3.png", "text": "Но двери — это не то, что я хотел. Всю ночь я ворочался, слушая, как за стеной кто-то играл на гитаре.", "duration": 1000},
+    {"image": "png\prologue3.png", "text": "Почему я должен жить в этом сером мире, когда хочу туда. Мне нужен не диплом и выживание. Мне нужна та жизнь, та машина и хороший дом. То что скажет за меня, что я не из чёртовой общаги. ", "duration": 1000},
+    {"image": "png\prologue3.png", "text": "Сосед: Да, есть килл!", "duration": 1000},
+    {"image": "png\prologue3.png", "text": "«Четыре года, — прошептал я. — Четыре года, чтобы заработать на ту жизнь. Но как?».", "duration": 1000},
+    {"image": "png\prologue3.png", "text": "«Учёба, лабы, сессии... А если не сдашь — армия. Но если только учиться, когда зарабатывать?»", "duration": 1000},
+    {"image": "png\prologue3.png", "text": "В интернете нашёл и прочитал про майнинг, подработки, трейдин и как прокачаться с нуля. «Надо крутиться. Учёба – чтобы не отчислили. Заработок – чтобы не сойти с ума от безнадёги»  ", "duration": 1000},
+    {"image": "png\prologue3.png", "text": "Пока сосед играл я не могу уснуть и изучал всё что мне может пригодиться, чтобы вылезти из этой ситуации. Так я и просидел до 3-х ночи.  ", "duration": 1000},
+    {"image": "png\prologue3.png", "text": "Аааа, спать охота.  ", "duration": 1000},
+    {"image": "png\prologue3.png", "text": "Преподаватель: «Молодой человек, если не сдадите лабу до пятницы, будете в армии отсыпаться!».  ", "duration": 1000},
+    {"image": "png\prologue3.png", "text": "Чем же в итоге заниматься?  ", "duration": 1000},
 ]
 
 def get_monitor_resolution():
@@ -1234,7 +1235,7 @@ def main():
 
     # Загрузка иконок
     try:
-        money_icon = pygame.image.load('money.png').convert_alpha()
+        money_icon = pygame.image.load('png/money.png').convert_alpha()
         money_icon = pygame.transform.scale(money_icon, (40, 40))
     except Exception as e:
         print(f"Ошибка загрузки money.png: {e}")
@@ -1242,7 +1243,7 @@ def main():
         money_icon.fill(YELLOW)
 
     try:
-        energy_icon = pygame.image.load('energe.png').convert_alpha()
+        energy_icon = pygame.image.load('png/energe.png').convert_alpha()
         energy_icon = pygame.transform.scale(energy_icon, (40, 40))
     except Exception as e:
         print(f"Ошибка загрузки energe.png: {e}")
@@ -1250,7 +1251,7 @@ def main():
         energy_icon.fill(BLUE)
 
     try:
-        settings_icon = pygame.image.load('setting.png').convert_alpha()
+        settings_icon = pygame.image.load('png/setting.png').convert_alpha()
         settings_icon = pygame.transform.scale(settings_icon, (40, 40))
     except Exception as e:
         print(f"Ошибка загрузки setting.png: {e}")
