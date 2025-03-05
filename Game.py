@@ -1258,13 +1258,17 @@ def main():
         settings_icon = pygame.Surface((40, 40))
         settings_icon.fill(RED)
 
+    has_save_file = os.path.exists("save.json")
+
     # Создаём кнопки меню
     main_menu_buttons = {
-        "continue": Button(50, 200, 300, 50, "Продолжить", GREEN, WHITE),
         "new_game": Button(50, 300, 300, 50, "Новая игра", BLUE, WHITE),
         "settings": Button(50, 400, 300, 50, "Настройки", YELLOW, BLACK),
         "quit": Button(50, 500, 300, 50, "Выйти", RED, WHITE)
     }
+
+    if has_save_file:
+        main_menu_buttons["continue"] = Button(50, 200, 300, 50, "Продолжить", GREEN, WHITE)
 
     new_game_warning_buttons = {
         "yes": Button(SCREEN_WIDTH // 2 - 120, 350, 100, 50, "Да", GREEN, WHITE),
@@ -1388,6 +1392,23 @@ def main():
                         event.pos, state, game, current_plot_text,
                         settings_button, buttons, (current_width, current_height)
                     )
+        if state == "main_menu":
+            # Проверяем наличие файла save.json
+            has_save_file = os.path.exists("save.json")
+
+            # Создаем кнопки главного меню
+            main_menu_buttons = {
+                "new_game": Button(50, 300, 300, 50, "Новая игра", BLUE, WHITE),
+                "settings": Button(50, 400, 300, 50, "Настройки", YELLOW, BLACK),
+                "quit": Button(50, 500, 300, 50, "Выйти", RED, WHITE)
+            }
+
+            # Добавляем кнопку "Продолжить" только если файл существует
+            if has_save_file:
+                main_menu_buttons["continue"] = Button(50, 200, 300, 50, "Продолжить", GREEN, WHITE)
+
+            # Обновляем группу кнопок главного меню в общем списке
+            buttons["main_menu"] = main_menu_buttons  # Обновляем кнопки в глобальном словаре
 
         # Отрисовка текущего состояния
         if state == "prologue" and prologue:
