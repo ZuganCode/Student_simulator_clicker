@@ -316,9 +316,9 @@ class Game:
         shop_items (dict): Словарь предметов магазина
     """
     def __init__(self):
-        self.money = 1000
-        self.energy = 500
-        self.max_energy = 100
+        self.money = 5000
+        self.energy = 3000
+        self.max_energy = 3000
         self.total_days = 1
         self.current_season_index = 0
         self.season_list = ["Осень", "Зима", "Весна", "Лето"]
@@ -505,13 +505,11 @@ class Game:
         expense = self.daily_expenses + self.daily_expense_buff
         self.add_money(-expense)
         if self.total_days % 10 == 0:  # Начисление стипендии каждые 10 дней
-            scholarship_amount = 1000 if self.current_season_index < 2 else 500
+            scholarship_amount = 10000 if self.current_season_index < 2 else 2500
             self.add_money(scholarship_amount)
             self.last_scholarship_amount = scholarship_amount  # Сохраняем последнюю сумму стипендии
         if not self.rent_paid:
             self.add_money(-self.rent_cost)
-        if self.money < 0:
-            self.energy = max(0, self.energy - 20)
         self.total_days += 1
         self.current_season_index = (self.total_days // 30) % 4  # Обновление сезона каждые 30 дней
         self.season = self.season_list[self.current_season_index]
@@ -519,7 +517,7 @@ class Game:
             self.knowledge_check_passed = random.random() > 0.3
             if not self.knowledge_check_passed:
                 self.study_score -= 20
-        self.energy = min(self.max_energy, self.energy + 30)
+        self.energy = self.max_energy
         return random.choice(self.plot_inserts)
 
     def lottery(self):
@@ -620,60 +618,6 @@ def apply_display_mode(resolution, mode):
         return pygame.display.set_mode((1280, 720), RESIZABLE)
 
 
-def handle_keyboard_events(event, state):
-    """
-    Обрабатывает события клавиатуры.
-
-    Args:
-        event (pygame.event.Event): Событие клавиатуры
-        state (str): Текущее состояние игры
-
-    Returns:
-        str: Новое состояние игры
-    """
-    if event.key == pygame.K_ESCAPE:
-        if state == "shop":
-            return "game"
-        elif state == "game_settings" or state == "settings":
-            return "game" if state == "game_settings" else "main_menu"
-        elif state == "game":
-            return "game_settings"
-    return state
-
-
-def handle_events(game, state, current_plot_text, settings_button, prologue, buttons):
-    """
-    Обработчик всех игровых событий.
-
-    Args:
-        game (Game): Экземпляр игры
-        state (str): Текущее состояние игры
-        current_plot_text (str): Текущий текст сюжета
-        settings_button (Button): Кнопка настроек
-        prologue (Prologue): Экземпляр пролога
-        buttons (dict): Словарь всех кнопок
-
-    Returns:
-        tuple: (running, state, current_plot_text)
-    """
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            return False, state, current_plot_text
-
-        if state == "game_settings":
-            new_state = handle_game_settings_events(pygame.mouse.get_pos(), event, state, game,
-                                                    buttons["game_settings"])
-            if new_state != state:
-                return True, new_state, current_plot_text
-        else:
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                state, current_plot_text = handle_mouse_events(
-                    event.pos, state, game, current_plot_text,
-                    settings_button, buttons, pygame.display.get_surface().get_size())
-
-    return True, state, current_plot_text
-
-
 def handle_mouse_events(mouse_pos, state, game, current_plot_text, settings_button, buttons, screen_size):
     """
     Обрабатывает события мыши.
@@ -714,6 +658,15 @@ def handle_mouse_events(mouse_pos, state, game, current_plot_text, settings_butt
         elif buttons["new_game_warning"]["no"].is_clicked(mouse_pos):
             return "main_menu", current_plot_text
 
+    elif state == "exit_confirmation":
+        if buttons["exit_confirmation"]["yes"].is_clicked(mouse_pos):
+            game.save_game()
+            pygame.quit()
+            sys.exit()
+        elif buttons["exit_confirmation"]["no"].is_clicked(mouse_pos):
+            pygame.quit()
+            sys.exit()
+
     elif state == "prologue_choice":
         if buttons["prologue_choice"]["watch"].is_clicked(mouse_pos):
             return "prologue", current_plot_text
@@ -735,14 +688,7 @@ def handle_mouse_events(mouse_pos, state, game, current_plot_text, settings_butt
                 elif action == "next_day":
                     return "game", game.process_day()
                 elif action == "lottery":
-                    if game.money >= 50:
-                        game.money -= 50
-                        if random.random() < 0.3:
-                            win = random.randint(10, 300)
-                            game.money += win
-                            return "game", f"Поздравляем! Вы выиграли {win}₽!"
-                        return "game", "К сожалению, вы не выиграли."
-                    return "game", "Недостаточно денег для участия в лотерее"
+                    return "game", game.lottery()
                 elif action == "shop":
                     return "shop", current_plot_text
 
@@ -760,9 +706,8 @@ def handle_mouse_events(mouse_pos, state, game, current_plot_text, settings_butt
             return source_state, current_plot_text
         elif buttons["settings"]["main"]["continue"].is_clicked(mouse_pos):
             return "game", current_plot_text
-        elif buttons["settings"]["main"]["exit"].is_clicked(mouse_pos):
-            pygame.quit()
-            sys.exit()
+        elif buttons["settings"]["main"]["exit"].is_clicked(mouse_pos) and state == "game_settings":
+            return "exit_confirmation", current_plot_text
         elif buttons["settings"]["main"]["main_menu"].is_clicked(mouse_pos):
             if state == "game_settings":
                 game.save_game()
@@ -924,122 +869,6 @@ def handle_shop_events(mouse_pos, game, category_buttons, subcategory_buttons, e
     return None
 
 
-def handle_mouse_events(mouse_pos, state, game, current_plot_text, settings_button, buttons, screen_size):
-    """
-    Обрабатывает события мыши.
-    """
-    global current_settings_section
-    current_width, current_height = screen_size
-
-    if state == "main_menu":
-        for action, button in buttons["main_menu"].items():
-            if button.is_clicked(mouse_pos):
-                if action == "continue":
-                    game.load_game()
-                    return "game", current_plot_text
-                elif action == "new_game":
-                    return "new_game_warning", current_plot_text
-                elif action == "settings":
-                    current_settings_section = SETTINGS_SECTIONS["main"]
-                    return "settings", current_plot_text
-                elif action == "quit":
-                    pygame.quit()
-                    sys.exit()
-
-    elif state == "new_game_warning":
-        if buttons["new_game_warning"]["yes"].is_clicked(mouse_pos):
-            return "prologue_choice", current_plot_text
-        elif buttons["new_game_warning"]["no"].is_clicked(mouse_pos):
-            return "main_menu", current_plot_text
-
-    elif state == "exit_confirmation":
-        if buttons["exit_confirmation"]["yes"].is_clicked(mouse_pos):
-            game.save_game()
-            pygame.quit()
-            sys.exit()
-        elif buttons["exit_confirmation"]["no"].is_clicked(mouse_pos):
-            pygame.quit()
-            sys.exit()
-
-    elif state in ["settings", "game_settings"]:
-        # Определяем, откуда были вызваны настройки
-        source_state = "game" if state == "game_settings" else "main_menu"
-
-        # Проверяем клики по основным кнопкам меню настроек
-        if buttons["settings"]["main"]["display"].is_clicked(mouse_pos):
-            current_settings_section = SETTINGS_SECTIONS["display"]
-            return state, current_plot_text
-        elif buttons["settings"]["main"]["sound"].is_clicked(mouse_pos):
-            current_settings_section = SETTINGS_SECTIONS["sound"]
-            return state, current_plot_text
-        elif buttons["settings"]["main"]["back"].is_clicked(mouse_pos):
-            return source_state, current_plot_text
-        elif buttons["settings"]["main"]["continue"].is_clicked(mouse_pos) and state == "game_settings":
-            return "game", current_plot_text
-        elif buttons["settings"]["main"]["exit"].is_clicked(mouse_pos) and state == "game_settings":
-            return "exit_confirmation", current_plot_text
-        elif buttons["settings"]["main"]["main_menu"].is_clicked(mouse_pos) and state == "game_settings":
-            game.save_game()
-            return "main_menu", current_plot_text
-
-        # Проверяем клики по кнопкам настроек экрана
-        if current_settings_section == SETTINGS_SECTIONS["display"]:
-            settings = load_settings()
-            current_resolution = settings["resolution"]
-            current_mode = settings["display_mode"]
-
-            # Обработка кнопок разрешения
-            if buttons["settings"]["display"]["hd"].is_clicked(mouse_pos):
-                current_resolution = [1280, 720]
-            elif buttons["settings"]["display"]["fhd"].is_clicked(mouse_pos):
-                current_resolution = [1920, 1080]
-            elif buttons["settings"]["display"]["qhd"].is_clicked(mouse_pos):
-                current_resolution = [2560, 1440]
-
-            # Обработка кнопок режима отображения
-            for mode in DISPLAY_MODES:
-                if buttons["settings"]["display"]["display_mode"][mode].is_clicked(mouse_pos):
-                    current_mode = mode
-
-            # Применяем настройки
-            save_settings(current_resolution, current_mode)
-            screen = apply_display_mode(current_resolution, current_mode)
-
-
-    elif state == "game":
-        if settings_button.is_clicked(mouse_pos):
-            current_settings_section = SETTINGS_SECTIONS["main"]
-            return "game_settings", current_plot_text
-
-        for action, button in game.buttons.items():
-            if button.is_clicked(mouse_pos):
-                if action == "study":
-                    return "game", game.study(20)
-                elif action == "work":
-                    return "game", game.work(20)
-                elif action == "next_day":
-                    return "game", game.process_day()
-                elif action == "lottery":
-                    if game.money >= 50:
-                        game.money -= 50
-                        if random.random() < 0.3:
-                            win = random.randint(10, 300)
-                            game.money += win
-                            return "game", f"Поздравляем! Вы выиграли {win}₽!"
-                        return "game", "К сожалению, вы не выиграли."
-                    return "game", "Недостаточно денег для участия в лотерее"
-                elif action == "shop":
-                    return "shop", current_plot_text
-
-    elif state == "shop":
-        # Кнопка выхода из магазина
-        exit_button_rect = pygame.Rect(current_width - 150, 20, 100, 50)
-        if exit_button_rect.collidepoint(mouse_pos):
-            return "game", current_plot_text
-
-    return state, current_plot_text
-
-
 def draw_state(screen, state, game, current_plot_text, settings_button, settings_icon,
                money_icon, energy_icon, current_width, current_height, prologue, buttons):
     """
@@ -1086,7 +915,7 @@ def draw_main_menu(screen, buttons):
     Отрисовывает главное меню игры.
 
     Args:
-        screen (pygame.Surface): Поверхность для отрисовки
+        screen (pygame. Surface): Поверхность для отрисовки
         buttons (dict): Словарь кнопок главного меню
     """
     title = MAIN_FONT.render("Симулятор Студенческой Жизни", True, WHITE)
@@ -1378,7 +1207,7 @@ def main():
     """
     Главная функция игры.
     """
-    global current_settings_section, screen
+    global current_settings_section, screen, subcategory_buttons, exit_button, category_buttons
 
     try:
         pygame.init()
@@ -1524,6 +1353,11 @@ def main():
                         state = "game_settings"
                     elif state in ["settings", "game_settings"]:
                         state = "main_menu" if state == "settings" else "game"
+                    elif state == "new_game_warning":
+                        state = "main_menu"
+                    elif state == "prologue_choice":
+                        state = "new_game_warning"
+
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if state == "prologue":
@@ -1580,5 +1414,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-#ХУЙ
