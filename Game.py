@@ -57,17 +57,17 @@ PROLOGUE_DATA = [
     {"image": "png\prologue3.png", "text": "Новенький? На вахте узнай куда тебе.", "duration": 1000},
     {"image": "png\prologue4.png", "text": "ААААА, Надо сделать так чтобы если было пусто, то игра не крашилась", "duration": 1000},
     {"image": "png\prologue5.png", "text": "* сосед храпит, а за стенкой, кто-то играет на гитаре и поёт песни* \n Не могу уснуть, посмотрю, что в соцсетях. ", "duration": 1000},
-    {"image": "png\prologue3.png", "text": "Кто-то из одногруппников купил машину, а кто-то только вернулся из поездки в Дубай. А я тут, в этой клетке 3x4 метра, с мечтой о дипломе, который, как уверяют, «откроет все двери». ", "duration": 1000},
-    {"image": "png\prologue3.png", "text": "Но двери — это не то, что я хотел. Всю ночь я ворочался, слушая, как за стеной кто-то играл на гитаре.", "duration": 1000},
-    {"image": "png\prologue3.png", "text": "Почему я должен жить в этом сером мире, когда хочу туда. Мне нужен не диплом и выживание. Мне нужна та жизнь, та машина и хороший дом. То что скажет за меня, что я не из чёртовой общаги. ", "duration": 1000},
-    {"image": "png\prologue3.png", "text": "Сосед: Да, есть килл!", "duration": 1000},
-    {"image": "png\prologue3.png", "text": "«Четыре года, — прошептал я. — Четыре года, чтобы заработать на ту жизнь. Но как?».", "duration": 1000},
-    {"image": "png\prologue3.png", "text": "«Учёба, лабы, сессии... А если не сдашь — армия. Но если только учиться, когда зарабатывать?»", "duration": 1000},
-    {"image": "png\prologue3.png", "text": "В интернете нашёл и прочитал про майнинг, подработки, трейдин и как прокачаться с нуля. «Надо крутиться. Учёба – чтобы не отчислили. Заработок – чтобы не сойти с ума от безнадёги»  ", "duration": 1000},
-    {"image": "png\prologue3.png", "text": "Пока сосед играл я не могу уснуть и изучал всё что мне может пригодиться, чтобы вылезти из этой ситуации. Так я и просидел до 3-х ночи.  ", "duration": 1000},
-    {"image": "png\prologue3.png", "text": "Аааа, спать охота.  ", "duration": 1000},
-    {"image": "png\prologue3.png", "text": "Преподаватель: «Молодой человек, если не сдадите лабу до пятницы, будете в армии отсыпаться!».  ", "duration": 1000},
-    {"image": "png\prologue3.png", "text": "Чем же в итоге заниматься?  ", "duration": 1000},
+    {"image": "png\prologue5.png", "text": "Кто-то из одногруппников купил машину, а кто-то только вернулся из поездки в Дубай. А я тут, в этой клетке 3x4 метра, с мечтой о дипломе, который, как уверяют, «откроет все двери». ", "duration": 1000},
+    {"image": "png\prologue6.png", "text": "Но двери — это не то, что я хотел. Всю ночь я ворочался, слушая, как за стеной кто-то играл на гитаре.", "duration": 1000},
+    {"image": "png\prologue7.png", "text": "Почему я должен жить в этом сером мире, когда хочу туда. Мне нужен не диплом и выживание. Мне нужна та жизнь, та машина и хороший дом. То что скажет за меня, что я не из чёртовой общаги. ", "duration": 1000},
+    {"image": "png\prologue8.png", "text": "Сосед: Да, есть килл!", "duration": 1000},
+    {"image": "png\prologue8.png", "text": "«Четыре года, — прошептал я. — Четыре года, чтобы заработать на ту жизнь. Но как?».", "duration": 1000},
+    {"image": "png\prologue8.png", "text": "«Учёба, лабы, сессии... А если не сдашь — армия. Но если только учиться, когда зарабатывать?»", "duration": 1000},
+    {"image": "png\prologue8.png", "text": "В интернете нашёл и прочитал про майнинг, подработки, трейдин и как прокачаться с нуля. «Надо крутиться. Учёба – чтобы не отчислили. Заработок – чтобы не сойти с ума от безнадёги»  ", "duration": 1000},
+    {"image": "png\prologue8.png", "text": "Пока сосед играл я не могу уснуть и изучал всё что мне может пригодиться, чтобы вылезти из этой ситуации. Так я и просидел до 3-х ночи.  ", "duration": 1000},
+    {"image": "png\prologue6.png", "text": "Аааа, спать охота.  ", "duration": 1000},
+    {"image": "png\prologue9.png", "text": "Преподаватель: «Молодой человек, если не сдадите лабу до пятницы, будете в армии отсыпаться!».  ", "duration": 1000},
+    {"image": "png\prologue4.png", "text": "Чем же в итоге заниматься?  ", "duration": 1000},
 ]
 
 def get_monitor_resolution():
@@ -903,7 +903,7 @@ def draw_state(screen, state, game, current_plot_text, settings_button, settings
             prologue.draw(screen)
     elif state == "game":
         draw_game_screen(screen, game, current_plot_text, settings_button, settings_icon,
-                         money_icon, energy_icon, current_width)
+                         money_icon, energy_icon, current_width, current_height)
     elif state in ["settings", "game_settings"]:
         source_state = "game" if state == "game_settings" else "main_menu"
         draw_settings_screen(screen, current_width, buttons["settings"],
@@ -924,8 +924,17 @@ def draw_main_menu(screen, buttons):
         screen (pygame. Surface): Поверхность для отрисовки
         buttons (dict): Словарь кнопок главного меню
     """
+    # Отрисовка фона
+    screen.blit(main_menu_bg, (0, 0))
+
+    # Масштабируем фон под текущее разрешение (если нужно)
+    screen_width, screen_height = screen.get_size()
+    scaled_bg = pygame.transform.scale(main_menu_bg, (screen_width, screen_height))
+    screen.blit(scaled_bg, (0, 0))
+
     title = MAIN_FONT.render("Симулятор Студенческой Жизни", True, WHITE)
     screen.blit(title, (50, 100))
+
     for button in buttons.values():
         button.draw(screen)
 
@@ -952,7 +961,7 @@ def draw_new_game_warning(screen, current_width, buttons):
 
 
 def draw_game_screen(screen, game, current_plot_text, settings_button, settings_icon,
-                     money_icon, energy_icon, current_width):
+                     money_icon, energy_icon, current_width,current_height):
     """
     Отрисовывает основной игровой экран.
 
@@ -966,6 +975,11 @@ def draw_game_screen(screen, game, current_plot_text, settings_button, settings_
         energy_icon (pygame.Surface): Иконка энергии
         current_width (int): Текущая ширина экрана
     """
+    # Отрисовка фона
+    screen.blit(game_bg, (0, 0))
+    scaled_game_bg = pygame.transform.scale(game_bg, (current_width, current_height))
+    screen.blit(scaled_game_bg, (0, 0))
+
     # Отрисовка текста "День (Сезон)"
     day_season_text = MAIN_FONT.render(f"День {game.total_days} ({game.season})", True, WHITE)
     screen.blit(day_season_text, (50, 10))
@@ -998,6 +1012,7 @@ def draw_game_screen(screen, game, current_plot_text, settings_button, settings_
         stat_text = MAIN_FONT.render(line, True, WHITE)
         screen.blit(stat_text, (50, stat_y))
         stat_y += 40  # Расстояние между строками
+
 
     # Отрисовка кнопок
     for button in game.buttons.values():
@@ -1213,13 +1228,23 @@ def main():
     """
     Главная функция игры.
     """
-    global current_settings_section, screen, subcategory_buttons, exit_button, category_buttons
+    global current_settings_section, screen, subcategory_buttons, exit_button, category_buttons, main_menu_bg, game_bg
 
     try:
         pygame.init()
     except pygame.error:
         print("Ошибка инициализации pygame")
         return
+
+    try:
+        main_menu_bg = pygame.image.load('png/main_menu.png').convert()
+        game_bg = pygame.image.load('png/game_bg.png').convert()
+    except pygame.error as e:
+        print(f"Ошибка загрузки фона: {e}")
+        main_menu_bg = pygame.Surface((1280, 720))
+        main_menu_bg.fill(PURPLE)
+        game_bg = pygame.Surface((1280, 720))
+        game_bg.fill(GRAY)
 
     current_settings_section = SETTINGS_SECTIONS["main"]
     clock = pygame.time.Clock()
@@ -1329,6 +1354,8 @@ def main():
 
     while running:
         current_width, current_height = screen.get_size()
+        main_menu_bg_scaled = pygame.transform.scale(main_menu_bg, (current_width, current_height))
+        game_bg_scaled = pygame.transform.scale(game_bg, (current_width, current_height))
 
         # Обновляем позиции кнопок настроек в игре
         buttons["game_settings"]["back"].rect.y = current_height - 70
