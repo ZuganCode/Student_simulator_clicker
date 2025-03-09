@@ -70,6 +70,308 @@ PROLOGUE_DATA = [
     {"image": "png\prologue4.png", "text": "Чем же в итоге заниматься?  ", "duration": 1000},
 ]
 
+# Сюжетные события
+PLOT_EVENTS = [
+    # 1. Встреча с однокурсником
+    {
+        "name": "Встреча с однокурсником",
+        "bg": "png/corridor.png",
+        "text": [
+            "Однокурсник: «Привет! Слушай, ты ведь уже сделал домашнее задание? Можешь помочь разобраться? Я совсем запутался.»"
+        ],
+        "options": [
+            {
+                "text": "«Привет. Да, я вчера как раз закончил. Что именно не понял? Давай объясню.» 50 энергии",
+                "effects": {"energy": -50, "karma": +1, "study_bonus": 10},
+                "one_time": False,
+                "message": "Вы помогли однокурснику и сами лучше поняли тему.(+1 карма, +10 к учёбе)"
+            },
+            {
+                "text": "«Привет. Неа, так что не помогу.»",
+                "effects": {"karma": -1},
+                "one_time": False,
+                "message": "Вы не помогли однокурснику и его завалили на паре.(-1 карма)"
+            }
+        ]
+    },
+
+    # 2. Помощь престарелому на улице
+    {
+        "name": "Помощь престарелому на улице",
+        "bg": "png/street_rain.png",
+        "text": [
+            "Пожилой человек: «Простите, молодой человек, вы не подскажете, как добраться до библиотеки? Я заблудился…»"
+        ],
+        "options": [
+            {
+                "text": "«Проводить лично» 100 энергии",
+                "effects": {"energy": -100, "karma": +2, "endurance": +5},
+                "one_time": False,
+                "message": "Вы помогли дедушке, он вам рассказал много интересных историй и дал конфетку.(+2 карма, +5 к настрою)"
+            },
+            {
+                "text": "«Быстро объяснить и пойти по делам» 20 энергии",
+                "effects": {"energy": -20},
+                "one_time": False,
+                "message": "Вы помогли дедушке, но потерялся."
+            },
+            {
+                "text": "Пройти мимо",
+                "effects": {"karma": -1},
+                "one_time": False,
+                "message": "Вы не помогли дедушке и он не нашёл дорогу.(-1 карма)"
+            }
+        ]
+    },
+
+    # 3. Стихийная встреча в коридоре общежития
+    {
+        "name": "Стихийная встреча в коридоре",
+        "bg": "png/dormitory.png",
+        "text": [
+            "Соседка: «Привет! Извини, давно хотела спросить… У меня в комнате свет мигает, может, ты поможешь?»"
+        ],
+        "options": [
+            {
+                "text": "«Давай попробую, но ничего не обещаю.» 50 энергии",
+                "effects": {"energy": -50, "karma": 1},
+                "success": {"chance": 0.6, "study_bonus": 10,
+                            "message": "Вы помогли и взамен вам помогли с учёбой.(+1 карма, +10 к учёбе)"},
+                "failure": {"chance": 0.4,"energy": -50,
+                            "message": "Вы пытались помочь, но вас ударило током.(+1 карма, -50 энергии)"},
+                "one_time": False
+            },
+            {
+                "text": "«Посоветовать вызвать специалиста»",
+                "effects": {"karma": -1, "message": "Вы отказались помогать.(-1 карма)"},
+                "one_time": False
+            }
+        ]
+    },
+
+    # 4. Непредвиденный тест на занятиях
+    {
+        "name": "Непредвиденный тест",
+        "bg": "png/classroom.png",
+        "text": [
+            "Преподаватель: «Сегодня контрольная. Без предупреждения! Кто не готов — придётся показать смекалку.»"
+        ],
+        "options": [
+            {
+                "text": "«Попытаться списать»",
+                "effects": {},
+                "success": {"chance": 0.5,"study_score": +30,
+                            "message": "Вы попытались списать и получили 5!(+30 к учёбе)"},
+                "failure": {"chance": 0.5,"study_score": -20,
+                            "message": "Вы попытали списать, но у вас заметили и поставили вам 2!(-20 к учёбе)"},
+                "one_time": False
+            },
+            {
+                "text": "«Честно писать со своими знаниями»",
+                "effects": {"study_score": +10},
+                "one_time": False,
+                "message": "Вы писали честно и получили 4.(+10 к учёбе)"
+            }
+        ]
+    },
+
+    # 5. Разговор в библиотеке
+    {
+        "name": "Разговор в библиотеке",
+        "bg": "png/library.png",
+        "text": [
+            "Студентка: «Подскажи, у тебя случайно нет конспектов по физике? Я слышала, ты хорошо конспектировал последнюю лекцию.»"
+        ],
+        "options": [
+            {
+                "text": "«Дать конспекты» 25 энергии",
+                "effects": {"energy": -25, "karma": +1, "study_bonus": 10},
+                "one_time": False,
+                "message": "Вы дали конспект и объяснили тему.(+1 карма, +10 к учёбе)"
+            },
+            {
+                "text": "«Оставить конспекты при себе»",
+                "effects": {"karma": -1},
+                "one_time": False,
+                "message": "Вы не помогли студентке.(-1 карма)"
+            }
+        ]
+    },
+
+    # 6. Помощь в сложную минуту
+    {
+        "name": "Помощь в сложную минуту",
+        "bg": "png/cafe.png",
+        "text": [
+            "Студент: «Слушай, у меня сдача зачётов на носу, совсем нет денег, а я так голоден… Ты не подкинешь пару монет?»"
+        ],
+        "options": [
+            {
+                "text": "«Одолжить деньги» 1000 монет",
+                "effects": {"money": -1000, "karma": +2},
+                "one_time": False,
+                "message": "Вы помогли студенту в трудную минуту.(+2 карма)"
+            },
+            {
+                "text": "«Отказать»",
+                "effects": {"karma": -1},
+                "one_time": False,
+                "message": "Вы не помогли студенту.(-1 карма)"
+            }
+        ]
+    },
+
+    # 7. Помощь мальчику с листком
+    {
+        "name": "Помощь мальчику с листком",
+        "bg": "png/street.png",
+        "text": [
+            "Мальчик: «Дядя, помогите пожалуйста, я потерялся. Мне мама написала адрес, но я не знаю где он.»"
+        ],
+        "options": [
+            {
+                "text": "«Давай помогу, найдём куда тебе надо.» 50 энергии",
+                "effects": {
+                    "energy": -50,
+                    "money": -5000,
+                    "endurance": -10
+                },
+                "one_time": False,
+                "message": "Вы хотели помочь мальчику, но он вас завёл в переулок, где на вас напили бандиты.(-5000 монет, -10 настрой)"
+            },
+            {
+                "text": "«Сам найдётся»",
+                "effects": {},
+                "one_time": False,
+                "message": "Ничего не произошло"
+            }
+        ]
+    },
+
+    # 8. Загадочное объявление о проекте
+    {
+        "name": "Загадочное объявление",
+        "bg": "png/bulletin_board.png",
+        "text": [
+            "«Ищу талантливого программиста для секретного проекта. Щедрый гонорар гарантирован.»"
+        ],
+        "options": [
+            {
+                "text": "«Позвонить по указанному номеру» 200 энергии",
+                "effects": {"energy": -200},
+                "success": {"chance": 0.2,"money": +80000,
+                "message": "Вы хорошо поработали и вам заплатили 80000"},
+                "mid": {"money": +5000, "chance": 0.3,
+                "message": "Вы усердно работали и вам заплатили всего 5000"},
+                "failure": {"chance": 0.5,"endurance": -5,
+                "message": "Вы много работали, но вас обманули (-5 настроение)"},
+                "one_time": False
+            },
+            {
+                "text": "«Пройти мимо»",
+                "effects": {},
+                "one_time": False
+            }
+        ]
+    },
+
+    # 9. Приглашение на сбор средств
+    {
+        "name": "Сбор средств за кальмаров",
+        "bg": "png/corridor.png",
+        "text": [
+            "Организатор: «Мы собираем деньги на спасение бедных кальмаров. Сможешь помочь?»"
+        ],
+        "options": [
+            {
+                "text": "«Помочь организационно» 200 энергии",
+                "effects": {"energy": -200, "karma": +3, "discount": True},
+                "one_time": False,
+                "message": "Вы помогли с организацией и познакомились с разными людьми.(+3 карма, скидка на военный билет)"
+            },
+            {
+                "text": "«Сделать денежный взнос» 4000 монет",
+                "effects": {"money": -4000, "karma": +2, "endurance": +5},
+                "one_time": False,
+                "message": "Вы сделали решающий вклад в спасение кальмаров. (+2 карма, +5 настрой)"
+            },
+            {
+                "text": "«Отказаться полностью»",
+                "effects": {},
+                "one_time": False,
+                "message": "Ничего не произошло"
+            }
+        ]
+    },
+
+    # 10. Инцидент с велосипедом
+    {
+        "name": "Инцидент с велосипедом",
+        "bg": "png/rainy_street.png",
+        "text": [
+            "Студент: «Чёрт! У меня цепь слетела, а я опаздываю на экзамен! Можешь помочь?»"
+        ],
+        "options": [
+            {
+                "text": "«Давай помогу» 40 энергии",
+                "effects": {"energy": -40, "karma": +1},
+                "one_time": False,
+                "message": "Вы помогли студенту и он вам дал жвачку.(+1 к карме)"
+            },
+            {
+                "text": "«Я и сам опаздываю»",
+                "effects": {"karma": -1},
+                "one_time": False,
+                "message": "Вы отказались помочь.(-1 к карме)"
+            }
+        ]
+    },
+
+    # 11. Конкурс стартапов
+    {
+        "name": "Конкурс стартапов",
+        "bg": "png/lecture_hall.png",
+        "text": [
+            "Преподаватель: «У нас объявляется конкурс стартапов. Приз — грант на развитие идеи!»"
+        ],
+        "options": [
+            {
+                "text": "«Стоит попробовать»",
+                "effects": {"startup_participated": True},
+                "one_time": True
+            },
+            {
+                "text": "«Отказаться»",
+                "effects": {},
+                "one_time": False
+            }
+        ]
+    },
+
+    # 12. Спорт секция
+    {
+        "name": "Спорт секция",
+        "bg": "png/gym.png",
+        "text": [
+            "Тренер: «Вижу что ты набираешь форму, почему бы не ходить ко мне в секцию?»"
+        ],
+        "options": [
+            {
+                "text": "«Да, давайте» 100 энергии сейчас и 150 энергии навсегда",
+                "effects": {"energy_cost": -100, "max_energy": -150,"gym_participated": True},
+                "one_time": True,
+                "message": "Вы начинаете заниматься в спортивном зале.(+10 к настрою навсегда)"
+            },
+            {
+                "text": "«Нет, мне такое не надо»",
+                "effects": {},
+                "one_time": False,
+                "message": "Ничего не произошло"
+            }
+        ]
+    }
+]
+
 def get_monitor_resolution():
     """
     Получает разрешение основного монитора.
@@ -132,7 +434,7 @@ class Button:
            is_clicked(pos): Проверяет клик по кнопке
            update(mouse_pos): Обновляет состояние при наведении
        """
-    def __init__(self, x, y, width, height, text, color, text_color):
+    def __init__(self, x, y, width, height, text, color, text_color, icon=None):
         assert isinstance(color, tuple) and len(color) == 3, "Цвет должен быть кортежем из 3 чисел!"
         assert all(0 <= c <= 255 for c in color), "Каждый канал цвета должен быть от 0 до 255!"
 
@@ -143,10 +445,13 @@ class Button:
         self.default_color = color
         self.hover_color = (min(color[0] + 30, 255), min(color[1] + 30, 255), min(color[2] + 30, 255))
         self.current_color = color
+        self.icon = icon
 
     def draw(self, surface):
         """Рисует кнопку"""
         pygame.draw.rect(surface, self.current_color, self.rect)
+        if self.icon:
+            screen.blit(self.icon, (self.rect.x, self.rect.y))
         text_surface = SMALL_FONT.render(self.text, True, self.text_color)
         text_rect = text_surface.get_rect(center=self.rect.center)
         surface.blit(text_surface, text_rect)
@@ -169,6 +474,48 @@ class Button:
         else:
             self.current_color = self.default_color
 
+class GradientButton(Button):
+    """
+    Кнопка с градиентом прозрачности: центр менее прозрачный, края более.
+    """
+    def __init__(self, x, y, width, height, text, color, text_color, icon=None):
+        super().__init__(x, y, width, height, text, color, text_color, icon)
+        self.mask = self.create_gradient_mask(width, height)
+        self.default_color = color  # Сохраняем исходный цвет без альфа
+
+    def create_gradient_mask(self, width, height):
+        """Создает маску градиента альфа-канала."""
+        mask = pygame.Surface((width, height), pygame.SRCALPHA)
+        center_x, center_y = width // 2, height // 2
+        max_distance = ((width/2)**2 + (height/2)**2)**0.5
+        for y in range(height):
+            for x in range(width):
+                dx = x - center_x
+                dy = y - center_y
+                distance = (dx**2 + dy**2)**0.5
+                # Альфа-канал: 0 (прозрачно) на краях, 255 (непрозрачно) в центре
+                alpha = int(255 * (distance / max_distance))  # Обратный градиент
+                alpha = 255 - alpha  # Центрopaque, края прозрачные
+                alpha = max(alpha, 50)  # Минимум 50% прозрачности в центре
+                mask.set_at((x, y), (255, 255, 255, alpha))
+        return mask
+
+    def draw(self, surface):
+        """Отрисовывает кнопку с градиентом."""
+        # Основная поверхность кнопки с цветом и маской
+        base_color = pygame.Surface((self.rect.width, self.rect.height), pygame.SRCALPHA)
+        base_color.fill(self.color)  # Цвет кнопки без альфа
+        # Применяем маску для градиента прозрачности
+        masked = base_color.copy()
+        masked.blit(self.mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+        # Отрисовываем на экране
+        surface.blit(masked, self.rect)
+        # Отрисовываем текст и иконку поверх градиента
+        text_surface = SMALL_FONT.render(self.text, True, self.text_color)
+        text_rect = text_surface.get_rect(center=self.rect.center)
+        surface.blit(text_surface, text_rect)
+        if self.icon:
+            surface.blit(self.icon, (self.rect.x + 10, self.rect.y + 10))  # Отступ для иконки
 
 class Prologue:
     """
@@ -339,6 +686,21 @@ class Game:
         self.current_item_savings = 0
         self.daily_expenses = 10
         self.daily_expense_buff = 0
+        self.karma = 0  # Новая статистика "карма"
+        self.endurance = 100  # Стойкость к выгоранию
+        self.startup_participated = False  # Участие в стартапе (одноразово)
+        self.gym_participated = False  # Участие в секции (одноразово)
+        self.startup_phase = 0  # Фаза стартапа
+        self.startup_started = False  # Начало стартапа
+        self.sport_endurance_bonus = 0  # Бонус от секции
+        self.plot_events = []  # Список активных событий
+        self.screen_size = pygame.display.get_surface().get_size()
+        self.current_plot_text = None
+        self.message_timer = 0
+        self.used_events = set()
+        self.event_day = 0  # Текущий день в цикле вероятности
+        self.max_event_days = 5  # Максимальное число дней в цикле
+        self.current_plot_text = None
 
         screen_size = pygame.display.get_surface().get_size()
         button_width = 180
@@ -520,23 +882,249 @@ class Game:
             if not self.knowledge_check_passed:
                 self.study_score -= 20
         self.energy = self.max_energy
+        self.event_day += 1
+        current_day = self.event_day
+        chances = [1, 15, 30, 75, 100]
+
+        if current_day > 5:
+            current_day = 5  # Ограничение до 5 дней
+
+        current_chance = chances[current_day - 1]
+        trigger_event = False
+
+        # Проверка шанса или завершения цикла
+        if random.random() * 100 <= current_chance:
+            trigger_event = True
+        elif current_day == 5:
+            trigger_event = True
+
+        if trigger_event:
+            available_events = []
+            for event in PLOT_EVENTS:
+                if event.get("one_time", False) and event["name"] in self.used_events:
+                    continue
+                if event["name"] == "Конкурс стартапов" and self.startup_participated:
+                    continue
+                if event["name"] == "Спорт секция" and self.gym_participated:
+                    continue
+                available_events.append(event)
+
+            if available_events:
+                selected_event = random.choice(available_events)
+                self.plot_events.append(selected_event)
+
+            # Сброс счетчика после события
+            self.event_day = 0
+        else:
+            # Если не дошли до 5 дня, сохраняем текущий день
+            if current_day < 5:
+                self.event_day = current_day
+        if self.startup_started:
+            self.startup_phase += 1
+            if self.startup_phase == 5:
+                pass
         return random.choice(self.plot_inserts)
+
+    def handle_event(self, event_data):
+        try:
+            bg = pygame.image.load(event_data["bg"]).convert()
+            bg = pygame.transform.scale(bg, self.screen_size)
+        except:
+            bg = pygame.Surface(self.screen_size)
+            bg.fill(PURPLE)
+
+        buttons = []
+        total_buttons = len(event_data["options"])
+        button_height = 50
+        spacing = 10
+        start_y = self.screen_size[1] // 1.5  # Начало с центра экрана
+        button_width = 800
+        for i, option in enumerate(event_data["options"]):
+            y = start_y + (button_height + spacing) * i
+            btn_color = BLACK
+            # Используем GradientButton вместо Button
+            btn = GradientButton(
+                (self.screen_size[0] - button_width) // 2,  # Центрирование
+                y,
+                button_width,
+                button_height,
+                option["text"],
+                btn_color,
+                WHITE
+            )
+            buttons.append(btn)
+
+        # Создаем поверхность для текста события
+        text_surface = pygame.Surface((self.screen_size[0], 300), pygame.SRCALPHA)
+        text_surface.fill((0, 0, 0, 128))  # Полупрозрачный чёрный фон (30% прозрачности)
+
+        # Формируем текст
+        text = "\n".join(event_data["text"])  # Если text список строк
+        lines = self.wrap_text(text, self.screen_size[0], SMALL_FONT)  # Переносим текст
+
+        y = 10
+        for line in lines:
+            text_line = MAIN_FONT.render(line, True, WHITE)
+            text_surface.blit(text_line, (20, y))  # Отступ слева 20 пикселей
+            y += 30
+
+
+
+        return bg, buttons, text_surface
+
+    def wrap_text(self, text, max_width, font):
+        """Переносит текст, чтобы он влезал в указанную ширину."""
+        words = text.split(' ')
+        lines = []
+        current_line = ""
+        for word in words:
+            if font.size(current_line + word + " ")[0] <= max_width:
+                current_line += word + " "
+            else:
+                lines.append(current_line)
+                current_line = word + " "
+        lines.append(current_line)
+        return lines
+
+    import random
+
+    def apply_event_effects(self, selected_option):
+        # Базовые эффекты (всегда применяются)
+        base_effects = selected_option.get("effects", {})
+        for key, value in base_effects.items():
+            if key == "max_energy":
+                self.max_energy += value
+                # Не допускаем превышение текущей энергии
+                if self.energy > self.max_energy:
+                    self.energy = self.max_energy
+            elif key == "energy":
+                self.energy += value
+            elif key == "karma":
+                self.karma += value
+            elif key == "startup_participated":
+                self.startup_participated = value
+            elif key == "gym_participated":
+                self.gym_participated = value
+            elif key == "study_bonus":
+                self.study_progress += value
+            elif key == "money":
+                self.add_money(value)
+            elif key == "endurance":
+                self.endurance += value
+            elif key == "startup_started":
+                self.startup_started = True
+                self.startup_phase = 0
+            elif key == "discount":
+                self.daily_expense_buff -= value  # Пример обработки скидки
+            elif key == "study_score":
+                self.study_progress += value
+            elif key == "energy_cost":
+                self.energy -= value  # Затраты энергии
+
+        # Определяем, есть ли вероятностные исходы в опции
+        has_probability = any(
+            key in selected_option for key in ["chance", "success", "failure", "mid"]
+        )
+
+        if has_probability:
+            # Обработка вероятностных исходов
+            success_chance = selected_option.get("success", {}).get("chance", 0.0)
+            mid_chance = selected_option.get("mid", {}).get("chance", 0.0)
+            failure_chance = selected_option.get("failure", {}).get("chance", 0.0)
+
+            # Убедимся, что сумма вероятностей не превышает 100%
+            total_chance = success_chance + mid_chance + failure_chance
+            if total_chance > 1.0:
+                # Нормализуем вероятности, если сумма превышает 100%
+                success_chance /= total_chance
+                mid_chance /= total_chance
+                failure_chance /= total_chance
+
+            random_num = random.random()
+
+            # Определяем исход
+            if random_num < success_chance:
+                outcome = selected_option.get("success", {})
+                self.set_current_plot_text(outcome.get("message", "Успех!"))
+            elif random_num < success_chance + mid_chance:
+                outcome = selected_option.get("mid", {})
+                self.set_current_plot_text(outcome.get("message", "Средний результат"))
+            else:
+                outcome = selected_option.get("failure", {})
+                self.set_current_plot_text(outcome.get("message", "Провал..."))
+
+            # Применяем эффекты выбранного исхода
+            for key, value in outcome.items():
+                if key == "money":
+                    self.add_money(value)
+                elif key == "study_score":
+                    self.study_score += value
+                elif key == "endurance":
+                    self.endurance += value
+                elif key == "karma":
+                    self.karma += value
+                elif key == "startup_phase":
+                    self.startup_phase = value
+                elif key == "max_energy":
+                    self.max_energy += value
+                    if self.energy > self.max_energy:
+                        self.energy = self.max_energy
+        else:
+            # Для опций без вероятностных исходов
+            self.current_plot_text = selected_option.get("message", "Без сообщения")
+
+        # Обработка специфических эффектов
+        if "startup_started" in base_effects:
+            self.startup_participated = True
+        if "gym_participated" in base_effects:
+            self.gym_participated = True
+
+        # Сохраняем время для таймера сообщения
+        self.message_timer = pygame.time.get_ticks()
+
+    def set_current_plot_text(self, text):
+        """Устанавливает текст и обновляет таймер"""
+        self.current_plot_text = text
+        self.message_timer = pygame.time.get_ticks()
+
+    def check_message_timeout(self):
+        """Проверяет, прошло ли время для скрытия сообщения"""
+        if self.current_plot_text is not None:
+            current_time = pygame.time.get_ticks()
+            if current_time - self.message_timer > 5000:
+                self.current_plot_text = None
+                self.message_timer = 0  # Сброс таймера
+
+    def draw_game_screen(self, screen):
+        screen.fill((255, 255, 255))
+
+        # Отрисовка current_plot_text
+        if self.current_plot_text:
+            font = pygame.font.Font(None, 36)
+            text = font.render(self.current_plot_text, True, (0, 0, 0))
+            screen.blit(text, (10, 10))
 
     def lottery(self):
         """
-    Обрабатывает участие в лотерее.
+        Обрабатывает участие в лотерее.
 
-    Returns:
-        str: Сообщение о результате участия в лотерее
-    """
+        Returns:
+            str: Сообщение о результате участия в лотерее
+        """
         if self.money >= self.lottery_cost:
             self.add_money(-self.lottery_cost)
             if random.random() < 0.9:  # Вероятность выигрыша 90%
                 self.lottery_prize = random.randint(200, 100000)
                 self.add_money(self.lottery_prize)
+                # Устанавливаем сообщение через set_current_plot_text:
+                self.set_current_plot_text(f"Поздравляем! Вы выиграли {self.lottery_prize}")
                 return f"Поздравляем! Вы выиграли {self.lottery_prize}"
-            return "Извините, вам не повезло в этот раз."
-        return "Недостаточно денег для участия в лотерее."
+            else:
+                self.set_current_plot_text("Извините, вам не повезло в этот раз.")
+                return "Извините, вам не повезло в этот раз."
+        else:
+            self.set_current_plot_text("Недостаточно денег для участия в лотерее.")
+            return "Недостаточно денег для участия в лотерее."
 
     def save_game(self):
         """
@@ -676,7 +1264,22 @@ def handle_mouse_events(mouse_pos, state, game, current_plot_text, settings_butt
             game = Game()
             return "game", current_plot_text
 
+
     elif state == "game":
+        if game.plot_events:
+            current_event = game.plot_events[-1]
+            _, event_buttons, _ = game.handle_event(current_event)  # Не используем текст_поверхность здесь
+            # Проверяем клик по кнопкам вариантов
+            for i, btn in enumerate(event_buttons):
+                if btn.is_clicked(mouse_pos):
+                    selected_option = current_event["options"][i]
+                    game.apply_event_effects(selected_option)
+                    game.plot_events.pop()  # Удаляем событие из очереди
+                    if selected_option.get("one_time", False):
+                        game.used_events.add(current_event["name"])
+                    current_plot_text = game.current_plot_text
+                    return state, current_plot_text
+
         if settings_button.is_clicked(mouse_pos):
             current_settings_section = SETTINGS_SECTIONS["main"]
             return "game_settings", current_plot_text
@@ -904,6 +1507,17 @@ def draw_state(screen, state, game, current_plot_text, settings_button, settings
     elif state == "game":
         draw_game_screen(screen, game, current_plot_text, settings_button, settings_icon,
                          money_icon, energy_icon, current_width, current_height)
+        if game.plot_events:
+            current_event = game.plot_events[-1]
+            bg, event_buttons, text_surface = game.handle_event(current_event)  # Теперь 3 элемента
+            screen.blit(bg, (0, 0))  # Фон события
+
+            # Отрисовываем кнопки вариантов
+            for btn in event_buttons:
+                btn.draw(screen)
+
+            # Отрисовываем текст события внизу
+            screen.blit(text_surface, (0, screen.get_height() - 150))
     elif state in ["settings", "game_settings"]:
         source_state = "game" if state == "game_settings" else "main_menu"
         draw_settings_screen(screen, current_width, buttons["settings"],
@@ -1022,6 +1636,15 @@ def draw_game_screen(screen, game, current_plot_text, settings_button, settings_
     settings_button.draw(screen)
     if settings_icon:
         screen.blit(settings_icon, (settings_button.rect.x, settings_button.rect.y))
+
+
+    if game.plot_events:
+            current_event = game.plot_events[-1]
+            bg, event_buttons, text_surface = game.handle_event(current_event)
+            screen.blit(bg, (0, 0))  # Важно отрисовать фон поверх основного интерфейса
+            for btn in event_buttons:
+                btn.draw(screen)
+            screen.blit(text_surface, (0, screen.get_height() - 250))  # Добавлено
 
 
 def handle_settings_events(mouse_pos, event, state, game, buttons, source_state="main_menu"):
@@ -1368,10 +1991,16 @@ def main():
         settings_button.rect.x = current_width - 60
         settings_button.update(mouse_pos)
 
+
         if state == "game":
             game.update_button_positions((current_width, current_height))
             for button in game.buttons.values():
                 button.update(mouse_pos)
+
+        if game.current_plot_text is not None:
+            current_time = pygame.time.get_ticks()
+            if current_time - game.message_timer > 3000:  # 3 секунды
+                game.current_plot_text = None  # Скрываем сообщение
 
         # Обработка событий в зависимости от состояния
         for event in pygame.event.get():
@@ -1452,11 +2081,43 @@ def main():
             draw_new_game_warning(screen, current_width, buttons["new_game_warning"])
         elif state == "shop":
             category_buttons, subcategory_buttons, exit_button = draw_shop_screen(screen, game, current_width)
+
+        events = pygame.event.get()  # Получаем события единожды
+
+        for event in events:
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                mouse_pos = pygame.mouse.get_pos()
+                # Обработка сюжетных событий
+                if game.plot_events:
+                    current_event = game.plot_events[-1]
+                    _, event_buttons = game.handle_event(current_event)  # Перезагружаем кнопки
+                    for i, btn in enumerate(event_buttons):
+                        if btn.is_clicked(mouse_pos):
+                            selected_option = current_event["options"][i]
+                            game.apply_event_effects(selected_option)
+                            game.plot_events.pop()
+                else:
+                    # Обработка остальных кнопок
+                    state, current_plot_text = handle_mouse_events(
+                        mouse_pos,
+                        state,
+                        game,
+                        current_plot_text,
+                        settings_button,
+                        buttons,
+                        (current_width, current_height)
+                    )
         else:
-            draw_state(
-                screen, state, game, current_plot_text, settings_button, settings_icon,
-                money_icon, energy_icon, current_width, current_height, prologue, buttons
-            )
+            # Остальная отрисовка
+            draw_state(screen, state, game, current_plot_text, settings_button,
+                       settings_icon, money_icon, energy_icon, current_width,
+                       current_height, prologue, buttons)
+
+        game.check_message_timeout()  # Проверяем таймер сообщения
+
+
 
         # Обновление экрана
         pygame.display.flip()
