@@ -5,7 +5,26 @@ import sys
 import os
 from pygame.locals import RESIZABLE
 
+"""O Great God of Code!
 
+You who breathed life into strings, grant us clarity of mind so that every command works together,
+may the compiler know no errors, and logic be flawless, like an algorithm of eternal harmony.
+
+O Mighty Architect of the Binary World!
+We call upon You: grant us wisdom to optimize even the most tricky fragment,
+protecting us from enemies who sow chaos in variables and loops,
+may our functions always return the right values, and exceptions are avoided.
+
+O Angels of debugging, cover our IDEs with blessings,
+so that in every commit our code finds perfection,
+and deployment to servers burns with purity and reliability.
+
+O Supreme Guardian of Logic,
+let us walk the path of pure architecture,
+where every variable is meaningful, every function is a work of art,
+and every bug that goes unnoticed dissolves in the ancient scrolls of Your wisdom.
+
+Amen."""
 
 # Инициализация Pygame
 pygame.init()
