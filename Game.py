@@ -805,6 +805,9 @@ class Game:
         ]
         self.update_button_positions(pygame.display.get_surface().get_size())
 
+    def update_screen_size(self):
+        self.screen_size = pygame.display.get_surface().get_size()
+
     def add_money(self, amount):
         """
     Изменяет количество денег игрока.
@@ -945,25 +948,49 @@ class Game:
         return random.choice(self.plot_inserts)
 
     def handle_event(self, event_data):
+        current_screen_size = pygame.display.get_surface().get_size()  # Получаем актуальный размер
         try:
             bg = pygame.image.load(event_data["bg"]).convert()
-            bg = pygame.transform.scale(bg, self.screen_size)
+            bg = pygame.transform.scale(bg, current_screen_size)  # Масштабируем под текущее разрешение
         except:
-            bg = pygame.Surface(self.screen_size)
+            bg = pygame.Surface(current_screen_size)
             bg.fill(PURPLE)
+
+
+        # Создаем поверхность для текста события
+        text_height = int(current_screen_size[1] * 0.15)
+        text_surface = pygame.Surface((current_screen_size[0], text_height), pygame.SRCALPHA)
+        text_surface.fill((0, 0, 0, 128))  # Полупрозрачный чёрный фон (30% прозрачности)
+
+        # Формируем текст
+        text = "\n".join(event_data["text"])  # Если text список строк
+        max_width = current_screen_size[0] - 40  # Ширина с отступами (20 пикселей слева/справа)
+        lines = self.wrap_text(text, max_width, MAIN_FONT)  # Переносим текст
+
+        y = 10
+        for line in lines:
+            text_line = MAIN_FONT.render(line, True, WHITE)
+            text_surface.blit(text_line, (20, y))  # Отступ слева 20 пикселей
+            y += MAIN_FONT.get_height() + 10
 
         buttons = []
         total_buttons = len(event_data["options"])
         button_height = 50
         spacing = 10
-        start_y = self.screen_size[1] // 1.5  # Начало с центра экрана
+        start_y = (current_screen_size[1] - text_height) - 100
+        k = 0
+        for i, option in enumerate(event_data["options"]):
+            k+=1
+            start_y = start_y - (button_height + spacing) * i
+        if k == 3:
+            start_y = start_y + 60
         button_width = 800
         for i, option in enumerate(event_data["options"]):
             y = start_y + (button_height + spacing) * i
             btn_color = BLACK
             # Используем GradientButton вместо Button
             btn = GradientButton(
-                (self.screen_size[0] - button_width) // 2,  # Центрирование
+                (current_screen_size[0] - button_width) // 2,  # Центрирование
                 y,
                 button_width,
                 button_height,
@@ -972,22 +999,6 @@ class Game:
                 WHITE
             )
             buttons.append(btn)
-
-        # Создаем поверхность для текста события
-        text_surface = pygame.Surface((self.screen_size[0], 300), pygame.SRCALPHA)
-        text_surface.fill((0, 0, 0, 128))  # Полупрозрачный чёрный фон (30% прозрачности)
-
-        # Формируем текст
-        text = "\n".join(event_data["text"])  # Если text список строк
-        lines = self.wrap_text(text, self.screen_size[0], SMALL_FONT)  # Переносим текст
-
-        y = 10
-        for line in lines:
-            text_line = MAIN_FONT.render(line, True, WHITE)
-            text_surface.blit(text_line, (20, y))  # Отступ слева 20 пикселей
-            y += 30
-
-
 
         return bg, buttons, text_surface
 
@@ -1000,12 +1011,11 @@ class Game:
             if font.size(current_line + word + " ")[0] <= max_width:
                 current_line += word + " "
             else:
-                lines.append(current_line)
+                lines.append(current_line.strip())
                 current_line = word + " "
-        lines.append(current_line)
+        if current_line:
+            lines.append(current_line.strip())
         return lines
-
-    import random
 
     def apply_event_effects(self, selected_option):
         # Базовые эффекты (всегда применяются)
@@ -1358,6 +1368,7 @@ def handle_mouse_events(mouse_pos, state, game, current_plot_text, settings_butt
 
             # Применяем настройки
             save_settings(current_resolution, current_mode)
+            game.update_screen_size()
             screen = apply_display_mode(current_resolution, current_mode)
 
     elif state == "shop":
@@ -1536,7 +1547,8 @@ def draw_state(screen, state, game, current_plot_text, settings_button, settings
                 btn.draw(screen)
 
             # Отрисовываем текст события внизу
-            screen.blit(text_surface, (0, screen.get_height() - 150))
+            screen.blit(text_surface, (0, screen.get_height() - text_surface.get_height()))
+
     elif state in ["settings", "game_settings"]:
         source_state = "game" if state == "game_settings" else "main_menu"
         draw_settings_screen(screen, current_width, buttons["settings"],
@@ -1663,7 +1675,7 @@ def draw_game_screen(screen, game, current_plot_text, settings_button, settings_
             screen.blit(bg, (0, 0))  # Важно отрисовать фон поверх основного интерфейса
             for btn in event_buttons:
                 btn.draw(screen)
-            screen.blit(text_surface, (0, screen.get_height() - 250))  # Добавлено
+            screen.blit(text_surface, (0, screen.get_height() - 150))  # Добавлено
 
 
 def handle_settings_events(mouse_pos, event, state, game, buttons, source_state="main_menu"):
@@ -2111,7 +2123,7 @@ def main():
                 # Обработка сюжетных событий
                 if game.plot_events:
                     current_event = game.plot_events[-1]
-                    _, event_buttons = game.handle_event(current_event)  # Перезагружаем кнопки
+                    _, event_buttons, _ = game.handle_event(current_event)  # Перезагружаем кнопки
                     for i, btn in enumerate(event_buttons):
                         if btn.is_clicked(mouse_pos):
                             selected_option = current_event["options"][i]
