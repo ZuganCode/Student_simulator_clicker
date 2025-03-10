@@ -684,6 +684,9 @@ class Game:
         shop_items (dict): Словарь предметов магазина
     """
     def __init__(self):
+        self.s_money = 0
+        self.s_karma = 0
+        self.s_study_progress = 0
         self.money = 5000
         self.energy = 3000
         self.max_energy = 3000
@@ -720,6 +723,10 @@ class Game:
         self.event_day = 0  # Текущий день в цикле вероятности
         self.max_event_days = 5  # Максимальное число дней в цикле
         self.current_plot_text = None
+        self.start_money = 0
+        self.start_karma = 0
+        self.start_study_progress = 0.0
+
 
         screen_size = pygame.display.get_surface().get_size()
         button_width = 180
@@ -881,6 +888,20 @@ class Game:
             self.add_money(income)
             self.energy -= energy_cost
 
+    def get_daily_stats(self):
+        """Возвращает изменения за текущий день."""
+        return {
+            "money_change": self.money - self.start_money - self.s_money,
+            "karma_change": self.karma - self.start_karma - self.s_karma,
+            "study_change": self.study_progress - self.start_study_progress - self.s_study_progress
+        }
+
+    def start_day(self):
+        """Сохраняет текущие значения как начальные для текущего дня."""
+        self.start_money = self.money
+        self.start_karma = self.karma
+        self.start_study_progress = self.study_progress
+
     def process_day(self):
         """
     Обрабатывает переход к следующему дню.
@@ -888,6 +909,10 @@ class Game:
     Returns:
         str: Случайное событие дня из plot_inserts
     """
+        self.s_money = self.money
+        self.s_karma = self.karma
+        self.s_study_progress = self.study_progress
+
         expense = self.daily_expenses + self.daily_expense_buff
         self.add_money(-expense)
         if self.total_days % 10 == 0:  # Начисление стипендии каждые 10 дней
@@ -945,6 +970,11 @@ class Game:
             self.startup_phase += 1
             if self.startup_phase == 5:
                 pass
+
+        self.s_money -= self.money
+        self.s_karma -= self.karma
+        self.s_study_progress -= self.study_progress
+
         return random.choice(self.plot_inserts)
 
     def handle_event(self, event_data):
@@ -1168,6 +1198,9 @@ class Game:
             "lab_completed": self.lab_completed,
             "study_score": self.study_score,
             "knowledge_check_passed": self.knowledge_check_passed,
+            "start_money": self.start_money,
+            "start_karma": self.start_karma,
+            "start_study_progress": self.start_study_progress,
             "current_season_index": self.current_season_index
         }
         with open("save.json", "w") as f:
@@ -1190,6 +1223,9 @@ class Game:
                 self.study_score = data.get("study_score", 0)
                 self.knowledge_check_passed = data.get("knowledge_check_passed", False)
                 self.current_season_index = data.get("current_season_index", 0)
+                self.start_money = data.get("start_money", self.money)
+                self.start_karma = data.get("start_karma", self.karma)
+                self.start_study_progress = data.get("start_study_progress", self.study_progress)
         except FileNotFoundError:
             print("Сохранение не найдено. Начинаем новую игру.")
 
@@ -1261,6 +1297,7 @@ def handle_mouse_events(mouse_pos, state, game, current_plot_text, settings_butt
             if button.is_clicked(mouse_pos):
                 if action == "continue":
                     game.load_game()
+                    game.start_day()
                     return "game", current_plot_text
                 elif action == "new_game":
                     return "new_game_warning", current_plot_text
@@ -1320,7 +1357,8 @@ def handle_mouse_events(mouse_pos, state, game, current_plot_text, settings_butt
                 elif action == "work":
                     return "game", game.work(20)
                 elif action == "next_day":
-                    return "game", game.process_day()
+                    stats = game.get_daily_stats()
+                    return "end_of_day_stat", current_plot_text
                 elif action == "lottery":
                     return "game", game.lottery()
                 elif action == "shop":
@@ -1409,6 +1447,14 @@ def handle_mouse_events(mouse_pos, state, game, current_plot_text, settings_butt
             exit_button_rect = pygame.Rect(current_width - 150, 20, 100, 50)
             if exit_button_rect.collidepoint(mouse_pos):
                 return "game", current_plot_text
+            
+    elif state == "end_of_day_stat":
+        if buttons["end_of_day_stat"]["continue"].is_clicked(mouse_pos):
+            # Обрабатываем переход к следующему дню
+            game.process_day()
+            # Подготавливаемся к новому дню
+            game.start_day()
+            return "game", current_plot_text
 
     return state, current_plot_text
 
@@ -1527,7 +1573,30 @@ def draw_state(screen, state, game, current_plot_text, settings_button, settings
         prologue (Prologue): Экземпляр пролога
         buttons (dict): Словарь всех кнопок
     """
-    if state == "main_menu":
+    if state == "end_of_day_stat":
+        screen.fill(BLACK)
+        window_rect = pygame.Rect(100, 100, 1000, 500)
+        pygame.draw.rect(screen, GRAY, window_rect)
+
+        title_text = MAIN_FONT.render("Статистика дня", True, WHITE)
+        screen.blit(title_text, (window_rect.x + 20, window_rect.y + 20))
+
+        stats = game.get_daily_stats()
+        lines = [
+            f"Деньги: {stats['money_change']} монет",
+            f"Карма: {stats['karma_change']}",
+            f"Знания: {stats['study_change']:.1f}"
+        ]
+
+        y = window_rect.y + 80
+        for line in lines:
+            text = MAIN_FONT.render(line, True, WHITE)
+            screen.blit(text, (window_rect.x + 20, y))
+            y += 40
+
+        # Отрисовка кнопки "Продолжить"
+        buttons["end_of_day_stat"]["continue"].draw(screen)
+    elif state == "main_menu":
         draw_main_menu(screen, buttons["main_menu"])
     elif state == "new_game_warning":
         draw_new_game_warning(screen, current_width, buttons["new_game_warning"])
@@ -1908,6 +1977,7 @@ def main():
     state = "main_menu"
     prologue = None
     settings = load_settings()
+    buttons = {}
     try:
         screen = apply_display_mode(settings["resolution"], settings["display_mode"])
     except pygame.error:
@@ -1945,6 +2015,7 @@ def main():
     has_save_file = os.path.exists("save.json")
 
     # Создаём кнопки меню
+
     main_menu_buttons = {
         "new_game": Button(50, 300, 300, 50, "Новая игра", BLUE, WHITE),
         "settings": Button(50, 400, 300, 50, "Настройки", YELLOW, BLACK),
@@ -2000,7 +2071,9 @@ def main():
         "exit_confirmation": {
             "yes": Button(SCREEN_WIDTH // 2 - 120, 350, 100, 50, "Да", GREEN, WHITE),
             "no": Button(SCREEN_WIDTH // 2 + 20, 350, 100, 50, "Нет", RED, WHITE)
-        }
+        },
+        "end_of_day_stat": {
+            "continue": Button(500, 400, 200, 50, "Продолжить", GREEN, WHITE)}
     }
 
     # Кнопка настроек
