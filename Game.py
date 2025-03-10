@@ -726,6 +726,15 @@ class Game:
         self.start_money = 0
         self.start_karma = 0
         self.start_study_progress = 0.0
+        self.monthly_money_change = 0
+        self.monthly_karma_change = 0
+        self.monthly_study_progress = 0.0
+        self.monthly_money_history = []  # История денег
+        self.monthly_study_history = []  # История обучения
+        self.current_month_day = 0  # Текущий день в месяце
+        self.monthly_start_money = self.money  # Начальное значение месяца
+        self.monthly_start_karma = self.karma
+        self.monthly_start_study_progress = self.study_progress
 
 
         screen_size = pygame.display.get_surface().get_size()
@@ -913,6 +922,28 @@ class Game:
         self.s_karma = self.karma
         self.s_study_progress = self.study_progress
 
+        # Обновляем историю каждого дня
+        self.monthly_money_history.append(self.money)
+        self.monthly_study_history.append(self.study_progress)
+
+
+        # Начало нового месяца
+        if self.total_days % 30 == 1:
+            self.monthly_start_money = self.money
+            self.monthly_start_karma = self.karma
+            self.monthly_start_study_progress = self.study_progress
+            self.monthly_money_history = [self.money]
+            self.monthly_study_history = [self.study_progress]
+            self.monthly_money_history.append(self.money)  # Добавляем начальное значение
+            self.monthly_study_history.append(self.study_progress)
+
+        # Конец месяца (день 30, 60, 90 и т.д.)
+        if self.total_days % 30 == 0:
+            # Рассчитываем изменения за месяц
+            self.monthly_money_change = self.money - self.monthly_start_money
+            self.monthly_karma_change = self.karma - self.monthly_start_karma
+            self.monthly_study_progress = self.study_progress - self.monthly_start_study_progress
+
         expense = self.daily_expenses + self.daily_expense_buff
         self.add_money(-expense)
         if self.total_days % 10 == 0:  # Начисление стипендии каждые 10 дней
@@ -974,6 +1005,7 @@ class Game:
         self.s_money -= self.money
         self.s_karma -= self.karma
         self.s_study_progress -= self.study_progress
+
 
         return random.choice(self.plot_inserts)
 
@@ -1201,7 +1233,16 @@ class Game:
             "start_money": self.start_money,
             "start_karma": self.start_karma,
             "start_study_progress": self.start_study_progress,
-            "current_season_index": self.current_season_index
+            "current_season_index": self.current_season_index,
+            "monthly_money_change": self.monthly_money_change,
+            "monthly_karma_change": self.monthly_karma_change,
+            "monthly_study_progress": self.monthly_study_progress,
+            "monthly_money_history": self.monthly_money_history,
+            "monthly_study_history": self.monthly_study_history,
+            "monthly_start_money": self.monthly_start_money,
+            "monthly_start_karma": self.monthly_start_karma,
+            "monthly_start_study_progress": self.monthly_start_study_progress,
+            "current_month_day": self.current_month_day
         }
         with open("save.json", "w") as f:
             json.dump(data, f)
@@ -1226,8 +1267,20 @@ class Game:
                 self.start_money = data.get("start_money", self.money)
                 self.start_karma = data.get("start_karma", self.karma)
                 self.start_study_progress = data.get("start_study_progress", self.study_progress)
+                self.monthly_money_change = data.get("monthly_money_change", 0)
+                self.monthly_karma_change = data.get("monthly_karma_change", 0)
+                self.monthly_study_progress = data.get("monthly_study_progress", 0.0)
+                self.monthly_money_history = data.get("monthly_money_history", [])
+                self.monthly_study_history = data.get("monthly_study_history", [])
+                self.monthly_start_money = data.get("monthly_start_money", self.money)
+                self.monthly_start_karma = data.get("monthly_start_karma", self.karma)
+                self.monthly_start_study_progress = data.get("monthly_start_study_progress", self.study_progress)
+                self.current_month_day = data.get("current_month_day", 0)
         except FileNotFoundError:
             print("Сохранение не найдено. Начинаем новую игру.")
+
+    def whats_day(self):
+        return self.total_days
 
 
 def apply_display_mode(resolution, mode):
@@ -1291,6 +1344,7 @@ def handle_mouse_events(mouse_pos, state, game, current_plot_text, settings_butt
     """
     global current_settings_section
     current_width, current_height = screen_size
+
 
     if state == "main_menu":
         for action, button in buttons["main_menu"].items():
@@ -1358,7 +1412,11 @@ def handle_mouse_events(mouse_pos, state, game, current_plot_text, settings_butt
                     return "game", game.work(20)
                 elif action == "next_day":
                     stats = game.get_daily_stats()
-                    return "end_of_day_stat", current_plot_text
+                    if game.total_days % 30 == 0:
+                        game.process_day()
+                        return "end_of_month_stat", current_plot_text
+                    else:
+                        return "end_of_day_stat", current_plot_text
                 elif action == "lottery":
                     return "game", game.lottery()
                 elif action == "shop":
@@ -1454,6 +1512,14 @@ def handle_mouse_events(mouse_pos, state, game, current_plot_text, settings_butt
             game.process_day()
             # Подготавливаемся к новому дню
             game.start_day()
+            return "game", current_plot_text
+
+    elif state == "end_of_month_stat":
+        if buttons["end_of_month_stat"]["continue"].is_clicked(mouse_pos):
+            # Обновляем данные для следующего месяца
+            game.monthly_money_change = 0
+            game.monthly_karma_change = 0
+            game.monthly_study_progress = 0.0
             return "game", current_plot_text
 
     return state, current_plot_text
@@ -1553,9 +1619,10 @@ def handle_shop_events(mouse_pos, game, category_buttons, subcategory_buttons, e
 
     return None
 
+stat_background = pygame.image.load("png/stat.png").convert_alpha()  # Загрузка фона
 
 def draw_state(screen, state, game, current_plot_text, settings_button, settings_icon,
-               money_icon, energy_icon, current_width, current_height, prologue, buttons):
+               money_icon, energy_icon, current_width, current_height, prologue, buttons, stat_bg):
     """
     Отрисовывает текущее состояние игры.
 
@@ -1574,12 +1641,21 @@ def draw_state(screen, state, game, current_plot_text, settings_button, settings
         buttons (dict): Словарь всех кнопок
     """
     if state == "end_of_day_stat":
-        screen.fill(BLACK)
-        window_rect = pygame.Rect(100, 100, 1000, 500)
-        pygame.draw.rect(screen, GRAY, window_rect)
+        current_width, current_height = game.screen_size  # Получаем текущие размеры экрана
 
-        title_text = MAIN_FONT.render("Статистика дня", True, WHITE)
-        screen.blit(title_text, (window_rect.x + 20, window_rect.y + 20))
+        # Адаптивные размеры окна (80% ширины и 60% высоты экрана)
+        window_width = int(current_width)
+        window_height = int(current_height)
+        window_x = (current_width - window_width) // 2
+        window_y = (current_height - window_height) // 2
+        window_rect = pygame.Rect(window_x, window_y, window_width, window_height)
+
+        # Масштабируем фон под размер окна
+        scaled_stat_bg = pygame.transform.scale(stat_bg, (window_rect.width, window_rect.height))
+        screen.blit(scaled_stat_bg, window_rect.topleft)
+
+        title_text = MAIN_FONT.render("Статистика дня", True, BLACK)
+        screen.blit(title_text, (current_width / 3.8, current_height / 10))
 
         stats = game.get_daily_stats()
         lines = [
@@ -1588,14 +1664,48 @@ def draw_state(screen, state, game, current_plot_text, settings_button, settings
             f"Знания: {stats['study_change']:.1f}"
         ]
 
-        y = window_rect.y + 80
+        y = current_height / 7
         for line in lines:
-            text = MAIN_FONT.render(line, True, WHITE)
-            screen.blit(text, (window_rect.x + 20, y))
-            y += 40
+            text = MAIN_FONT.render(line, True, BLACK)
+            screen.blit(text, (current_width / 5, y))
+            y += 60
 
         # Отрисовка кнопки "Продолжить"
         buttons["end_of_day_stat"]["continue"].draw(screen)
+
+
+    elif state == "end_of_month_stat":
+        current_width, current_height = game.screen_size
+        window_width = int(current_width)
+        window_height = int(current_height)
+        window_x = (current_width - window_width) // 2
+        window_y = (current_height - window_height) // 2
+        window_rect = pygame.Rect(window_x, window_y, window_width, window_height)
+
+        scaled_stat_bg = pygame.transform.scale(stat_bg, (window_rect.width, window_rect.height))
+        screen.blit(scaled_stat_bg, window_rect.topleft)
+
+        title_text = MAIN_FONT.render("Месячная статистика", True, BLACK)
+        screen.blit(title_text, (current_width / 3.8, current_height / 10))
+        # Используем АКТУАЛЬНЫЕ значения
+        stats = {
+            "Деньги:": game.monthly_money_change,
+            "Карма:": game.monthly_karma_change,
+            "Знания:": game.monthly_study_progress
+        }
+        y = current_height / 7
+        for key, value in stats.items():
+            text = MAIN_FONT.render(f"{key} {value}", True, BLACK)
+            screen.blit(text, (current_width / 5, y))
+            y += 60
+
+        # Отрисовка графика
+        graph_rect = pygame.Rect(current_width / 1.9, current_height / 5, current_width / 4.8, current_height / 2)
+        draw_monthly_graph(screen, game.monthly_money_history, game.monthly_study_history, graph_rect, game)
+
+        # Кнопка продолжить
+        buttons["end_of_month_stat"]["continue"].draw(screen)
+
     elif state == "main_menu":
         draw_main_menu(screen, buttons["main_menu"])
     elif state == "new_game_warning":
@@ -1629,6 +1739,54 @@ def draw_state(screen, state, game, current_plot_text, settings_button, settings
         # Затем поверх него отрисовываем окно подтверждения
         draw_exit_confirmation(screen, current_width, buttons["exit_confirmation"])
 
+
+def draw_monthly_graph(screen, money_history, study_history, rect, game):
+    if len(money_history) < 2:
+        return  # Не рисуем график, если данных мало
+    current_width, current_height = game.screen_size
+
+    # Разделяем прямоугольник на две части: верхняя 2/3 для денег, нижняя 1/3 для обучения
+    split_height = rect.height * (1 / 2)
+    money_rect = pygame.Rect(rect.x, rect.y, rect.width, split_height)
+    study_rect = pygame.Rect(rect.x, rect.y + split_height, rect.width, rect.height - split_height)
+
+    # Нормализация данных для отображения
+    max_money = max(money_history) if money_history else 1
+    max_study = max(study_history) if study_history else 1
+    days = len(money_history)
+
+    # Анимация: показываем по одному дню за 100 мс
+    frame = min(pygame.time.get_ticks() // 300, days)
+
+    # Отрисовка линий между точками
+    if frame >= 2:
+        # Деньги (зеленый)
+        for i in range(1, frame):
+            x1 = money_rect.x + (i - 1) / days * money_rect.width
+            y1 = money_rect.bottom - (money_history[i - 1] / max_money) * money_rect.height
+            x2 = money_rect.x + i / days * money_rect.width
+            y2 = money_rect.bottom - (money_history[i] / max_money) * money_rect.height
+            pygame.draw.line(screen, GREEN, (x1, y1), (x2, y2), 2)
+
+        # Обучение (красный)
+        for i in range(1, frame):
+            x1 = study_rect.x + (i - 1) / days * study_rect.width
+            y1 = study_rect.bottom - (study_history[i - 1] / max_study) * study_rect.height
+            x2 = study_rect.x + i / days * study_rect.width
+            y2 = study_rect.bottom - (study_history[i] / max_study) * study_rect.height
+            pygame.draw.line(screen, RED, (x1, y1), (x2, y2), 1)
+
+    # Отрисовка точек
+    for i in range(frame):
+        # Координаты для денег
+        x_money = money_rect.x + i / days * money_rect.width
+        y_money = money_rect.bottom - (money_history[i] / max_money) * money_rect.height
+        pygame.draw.circle(screen, GREEN, (x_money, y_money), 3)
+
+        # Координаты для обучения
+        x_study = study_rect.x + i / days * study_rect.width
+        y_study = study_rect.bottom - (study_history[i] / max_study) * study_rect.height
+        pygame.draw.circle(screen, RED, (x_study, y_study), 2)
 
 def draw_main_menu(screen, buttons):
     """
@@ -1996,6 +2154,8 @@ def main():
         money_icon = pygame.Surface((40, 40))
         money_icon.fill(YELLOW)
 
+    stat_bg = pygame.image.load("png/stat.png").convert_alpha()
+
     try:
         energy_icon = pygame.image.load('png/energe.png').convert_alpha()
         energy_icon = pygame.transform.scale(energy_icon, (40, 40))
@@ -2073,7 +2233,9 @@ def main():
             "no": Button(SCREEN_WIDTH // 2 + 20, 350, 100, 50, "Нет", RED, WHITE)
         },
         "end_of_day_stat": {
-            "continue": Button(500, 400, 200, 50, "Продолжить", GREEN, WHITE)}
+            "continue": Button(current_width / 2.34, current_height / 1.1, 200, 50, "Продолжить", GREEN, WHITE)},
+        "end_of_month_stat": {
+            "continue": Button(current_width / 2.34, current_height / 1.1, 200, 50, "Продолжить", GREEN, WHITE)}
     }
 
     # Кнопка настроек
@@ -2217,7 +2379,7 @@ def main():
             # Остальная отрисовка
             draw_state(screen, state, game, current_plot_text, settings_button,
                        settings_icon, money_icon, energy_icon, current_width,
-                       current_height, prologue, buttons)
+                       current_height, prologue, buttons, stat_bg)
 
         game.check_message_timeout()  # Проверяем таймер сообщения
 
