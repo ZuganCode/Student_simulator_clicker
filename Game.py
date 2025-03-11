@@ -117,7 +117,7 @@ PLOT_EVENTS = [
     # 2. Помощь престарелому на улице
     {
         "name": "Помощь престарелому на улице",
-        "bg": "png/street_rain.png",
+        "bg": "png/corridor.png",
         "text": [
             "Пожилой человек: «Простите, молодой человек, вы не подскажете, как добраться до библиотеки? Я заблудился…»"
         ],
@@ -146,7 +146,7 @@ PLOT_EVENTS = [
     # 3. Стихийная встреча в коридоре общежития
     {
         "name": "Стихийная встреча в коридоре",
-        "bg": "png/dormitory.png",
+        "bg": "png/corridor.png",
         "text": [
             "Соседка: «Привет! Извини, давно хотела спросить… У меня в комнате свет мигает, может, ты поможешь?»"
         ],
@@ -171,7 +171,7 @@ PLOT_EVENTS = [
     # 4. Непредвиденный тест на занятиях
     {
         "name": "Непредвиденный тест",
-        "bg": "png/classroom.png",
+        "bg": "png/corridor.png",
         "text": [
             "Преподаватель: «Сегодня контрольная. Без предупреждения! Кто не готов — придётся показать смекалку.»"
         ],
@@ -197,7 +197,7 @@ PLOT_EVENTS = [
     # 5. Разговор в библиотеке
     {
         "name": "Разговор в библиотеке",
-        "bg": "png/library.png",
+        "bg": "png/corridor.png",
         "text": [
             "Студентка: «Подскажи, у тебя случайно нет конспектов по физике? Я слышала, ты хорошо конспектировал последнюю лекцию.»"
         ],
@@ -220,7 +220,7 @@ PLOT_EVENTS = [
     # 6. Помощь в сложную минуту
     {
         "name": "Помощь в сложную минуту",
-        "bg": "png/cafe.png",
+        "bg": "png/corridor.png",
         "text": [
             "Студент: «Слушай, у меня сдача зачётов на носу, совсем нет денег, а я так голоден… Ты не подкинешь пару монет?»"
         ],
@@ -243,7 +243,7 @@ PLOT_EVENTS = [
     # 7. Помощь мальчику с листком
     {
         "name": "Помощь мальчику с листком",
-        "bg": "png/street.png",
+        "bg": "png/corridor.png",
         "text": [
             "Мальчик: «Дядя, помогите пожалуйста, я потерялся. Мне мама написала адрес, но я не знаю где он.»"
         ],
@@ -270,7 +270,7 @@ PLOT_EVENTS = [
     # 8. Загадочное объявление о проекте
     {
         "name": "Загадочное объявление",
-        "bg": "png/bulletin_board.png",
+        "bg": "png/corridor.png",
         "text": [
             "«Ищу талантливого программиста для секретного проекта. Щедрый гонорар гарантирован.»"
         ],
@@ -326,7 +326,7 @@ PLOT_EVENTS = [
     # 10. Инцидент с велосипедом
     {
         "name": "Инцидент с велосипедом",
-        "bg": "png/rainy_street.png",
+        "bg": "png/corridor.png",
         "text": [
             "Студент: «Чёрт! У меня цепь слетела, а я опаздываю на экзамен! Можешь помочь?»"
         ],
@@ -349,7 +349,7 @@ PLOT_EVENTS = [
     # 11. Конкурс стартапов
     {
         "name": "Конкурс стартапов",
-        "bg": "png/lecture_hall.png",
+        "bg": "png/corridor.png",
         "text": [
             "Преподаватель: «У нас объявляется конкурс стартапов. Приз — грант на развитие идеи!»"
         ],
@@ -370,7 +370,7 @@ PLOT_EVENTS = [
     # 12. Спорт секция
     {
         "name": "Спорт секция",
-        "bg": "png/gym.png",
+        "bg": "png/corridor.png",
         "text": [
             "Тренер: «Вижу что ты набираешь форму, почему бы не ходить ко мне в секцию?»"
         ],
@@ -1297,10 +1297,16 @@ def apply_display_mode(resolution, mode):
             return pygame.display.set_mode((0, 0), pygame.FULLSCREEN | pygame.HWSURFACE | pygame.DOUBLEBUF)
         elif mode == "borderless":
             # Получаем информацию о текущем дисплее
-            info = pygame.display.Info()
-            monitor_size = (info.current_w, info.current_h)
+            if hasattr(pygame.display, 'get_desktop_sizes'):
+                # Для pygame 2.0+
+                monitor_sizes = pygame.display.get_desktop_sizes()
+                monitor_size = monitor_sizes[0]
+            else:
+                # Для старых версий
+                info = pygame.display.Info()
+                monitor_size = (info.current_w, info.current_h)
 
-            # Сначала установим обычный режим, чтобы сбросить текущие настройки окна
+            # Сброс текущих настроек окна
             pygame.display.set_mode((1, 1))
 
             # Устанавливаем позицию окна в (0,0)
@@ -1312,8 +1318,9 @@ def apply_display_mode(resolution, mode):
                 pygame.NOFRAME | pygame.HWSURFACE | pygame.DOUBLEBUF
             )
 
-            # Принудительно обновляем размер окна
-            pygame.display.get_surface().get_size()
+            # Обновляем экран
+            pygame.display.flip()
+
             return screen
         else:  # windowed
             os.environ['SDL_VIDEO_CENTERED'] = '1'
@@ -1505,22 +1512,6 @@ def handle_mouse_events(mouse_pos, state, game, current_plot_text, settings_butt
             exit_button_rect = pygame.Rect(current_width - 150, 20, 100, 50)
             if exit_button_rect.collidepoint(mouse_pos):
                 return "game", current_plot_text
-            
-    elif state == "end_of_day_stat":
-        if buttons["end_of_day_stat"]["continue"].is_clicked(mouse_pos):
-            # Обрабатываем переход к следующему дню
-            game.process_day()
-            # Подготавливаемся к новому дню
-            game.start_day()
-            return "game", current_plot_text
-
-    elif state == "end_of_month_stat":
-        if buttons["end_of_month_stat"]["continue"].is_clicked(mouse_pos):
-            # Обновляем данные для следующего месяца
-            game.monthly_money_change = 0
-            game.monthly_karma_change = 0
-            game.monthly_study_progress = 0.0
-            return "game", current_plot_text
 
     return state, current_plot_text
 
@@ -1622,7 +1613,7 @@ def handle_shop_events(mouse_pos, game, category_buttons, subcategory_buttons, e
 stat_background = pygame.image.load("png/stat.png").convert_alpha()  # Загрузка фона
 
 def draw_state(screen, state, game, current_plot_text, settings_button, settings_icon,
-               money_icon, energy_icon, current_width, current_height, prologue, buttons, stat_bg):
+               money_icon, energy_icon, current_width, current_height, prologue, buttons, stat_bg, event, mouse_pos):
     """
     Отрисовывает текущее состояние игры.
 
@@ -1641,7 +1632,8 @@ def draw_state(screen, state, game, current_plot_text, settings_button, settings
         buttons (dict): Словарь всех кнопок
     """
     if state == "end_of_day_stat":
-        current_width, current_height = game.screen_size  # Получаем текущие размеры экрана
+        current_width, current_height = pygame.display.get_surface().get_size()  # Получаем текущие размеры экрана
+        current_screen_size = pygame.display.get_surface().get_size()
 
         # Адаптивные размеры окна (80% ширины и 60% высоты экрана)
         window_width = int(current_width)
@@ -1651,11 +1643,15 @@ def draw_state(screen, state, game, current_plot_text, settings_button, settings
         window_rect = pygame.Rect(window_x, window_y, window_width, window_height)
 
         # Масштабируем фон под размер окна
-        scaled_stat_bg = pygame.transform.scale(stat_bg, (window_rect.width, window_rect.height))
+        scaled_stat_bg = pygame.transform.scale(stat_bg, current_screen_size)
         screen.blit(scaled_stat_bg, window_rect.topleft)
+
 
         title_text = MAIN_FONT.render("Статистика дня", True, BLACK)
         screen.blit(title_text, (current_width / 3.8, current_height / 10))
+
+        title_text = MAIN_FONT.render("Заработал", True, BLACK)
+        screen.blit(title_text, (current_width / 5, current_height / 7))
 
         stats = game.get_daily_stats()
         lines = [
@@ -1664,36 +1660,58 @@ def draw_state(screen, state, game, current_plot_text, settings_button, settings
             f"Знания: {stats['study_change']:.1f}"
         ]
 
-        y = current_height / 7
+        y = current_height / 5.3
         for line in lines:
             text = MAIN_FONT.render(line, True, BLACK)
             screen.blit(text, (current_width / 5, y))
             y += 60
 
-        # Отрисовка кнопки "Продолжить"
-        buttons["end_of_day_stat"]["continue"].draw(screen)
+        continue_button = Button(
+            x=(current_width - 200) // 2,  # Центрируем по горизонтали
+            y=current_height - 80,  # 80 пикселей от нижнего края
+            width=200,
+            height=50,
+            text="Продолжить",
+            color=GREEN,
+            text_color=WHITE
+        )
+        continue_button.draw(screen)
+        mouse_pos = pygame.mouse.get_pos()
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if continue_button.is_clicked(mouse_pos):
+                game.process_day()
+                game.start_day()
+                return "game", current_plot_text  # Возвращаем новое состояние
+
 
 
     elif state == "end_of_month_stat":
-        current_width, current_height = game.screen_size
+        current_width, current_height = pygame.display.get_surface().get_size()
+        current_screen_size = pygame.display.get_surface().get_size()
+
+
         window_width = int(current_width)
         window_height = int(current_height)
         window_x = (current_width - window_width) // 2
         window_y = (current_height - window_height) // 2
         window_rect = pygame.Rect(window_x, window_y, window_width, window_height)
 
-        scaled_stat_bg = pygame.transform.scale(stat_bg, (window_rect.width, window_rect.height))
+        scaled_stat_bg = pygame.transform.scale(stat_bg, current_screen_size)
         screen.blit(scaled_stat_bg, window_rect.topleft)
 
         title_text = MAIN_FONT.render("Месячная статистика", True, BLACK)
         screen.blit(title_text, (current_width / 3.8, current_height / 10))
-        # Используем АКТУАЛЬНЫЕ значения
+
+        title_text = MAIN_FONT.render("Заработал", True, BLACK)
+        screen.blit(title_text, (current_width / 5, current_height / 7))
+
         stats = {
             "Деньги:": game.monthly_money_change,
             "Карма:": game.monthly_karma_change,
             "Знания:": game.monthly_study_progress
         }
-        y = current_height / 7
+
+        y = current_height / 5.3
         for key, value in stats.items():
             text = MAIN_FONT.render(f"{key} {value}", True, BLACK)
             screen.blit(text, (current_width / 5, y))
@@ -1703,8 +1721,23 @@ def draw_state(screen, state, game, current_plot_text, settings_button, settings
         graph_rect = pygame.Rect(current_width / 1.9, current_height / 5, current_width / 4.8, current_height / 2)
         draw_monthly_graph(screen, game.monthly_money_history, game.monthly_study_history, graph_rect, game)
 
-        # Кнопка продолжить
-        buttons["end_of_month_stat"]["continue"].draw(screen)
+        continue_button = Button(
+            x=(current_width - 200) // 2,
+            y=current_height - 80,
+            width=200,
+            height=50,
+            text="Продолжить",
+            color=GREEN,
+            text_color=WHITE
+        )
+        continue_button.draw(screen)
+        mouse_pos = pygame.mouse.get_pos()
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if continue_button.is_clicked(mouse_pos):
+                game.monthly_money_change = 0
+                game.monthly_karma_change = 0
+                game.monthly_study_progress = 0.0
+                return "game", current_plot_text  # Возвращаем новое состояние
 
     elif state == "main_menu":
         draw_main_menu(screen, buttons["main_menu"])
@@ -1738,6 +1771,8 @@ def draw_state(screen, state, game, current_plot_text, settings_button, settings
                              current_settings_section, "game")
         # Затем поверх него отрисовываем окно подтверждения
         draw_exit_confirmation(screen, current_width, buttons["exit_confirmation"])
+
+    return state, current_plot_text
 
 
 def draw_monthly_graph(screen, money_history, study_history, rect, game):
@@ -2154,7 +2189,14 @@ def main():
         money_icon = pygame.Surface((40, 40))
         money_icon.fill(YELLOW)
 
-    stat_bg = pygame.image.load("png/stat.png").convert_alpha()
+    try:
+        stat_bg = pygame.image.load('png/stat.png').convert_alpha()
+        stat_bg = pygame.transform.scale(stat_bg, game.screen_size)
+    except pygame.error as e:
+        print(f"Ошибка загрузки stat.png: {e}")
+        # Создайте fallback-фон, если файл не загрузился
+        stat_bg = pygame.Surface(game.screen_size)
+        stat_bg.fill((100, 100, 255))  # Синий цвет для теста
 
     try:
         energy_icon = pygame.image.load('png/energe.png').convert_alpha()
@@ -2217,7 +2259,6 @@ def main():
         "sound": {}
     }
 
-
     # Собираем все группы кнопок
     buttons = {
         "main_menu": main_menu_buttons,
@@ -2231,11 +2272,7 @@ def main():
         "exit_confirmation": {
             "yes": Button(SCREEN_WIDTH // 2 - 120, 350, 100, 50, "Да", GREEN, WHITE),
             "no": Button(SCREEN_WIDTH // 2 + 20, 350, 100, 50, "Нет", RED, WHITE)
-        },
-        "end_of_day_stat": {
-            "continue": Button(current_width / 2.34, current_height / 1.1, 200, 50, "Продолжить", GREEN, WHITE)},
-        "end_of_month_stat": {
-            "continue": Button(current_width / 2.34, current_height / 1.1, 200, 50, "Продолжить", GREEN, WHITE)}
+        }
     }
 
     # Кнопка настроек
@@ -2377,9 +2414,9 @@ def main():
                     )
         else:
             # Остальная отрисовка
-            draw_state(screen, state, game, current_plot_text, settings_button,
+            state, current_plot_text = draw_state(screen, state, game, current_plot_text, settings_button,
                        settings_icon, money_icon, energy_icon, current_width,
-                       current_height, prologue, buttons, stat_bg)
+                       current_height, prologue, buttons, stat_bg, event, mouse_pos)
 
         game.check_message_timeout()  # Проверяем таймер сообщения
 
