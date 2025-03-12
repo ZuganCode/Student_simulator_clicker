@@ -1,8 +1,9 @@
-import pygame
 import json
 import random
 import sys
 import os
+os.environ['SDL_VIDEO_CENTERED'] = '1'
+import pygame
 from pygame.locals import RESIZABLE
 
 """O Great God of Code!
@@ -46,6 +47,7 @@ YELLOW = (255, 255, 0)  # Желтый
 PURPLE = (128, 0, 128)  # Фиолетовый
 
 # Шрифты
+HAND_FONT = pygame.font.SysFont('Comic Sans MS', 36)
 MAIN_FONT = pygame.font.Font(None, 36)  # Основной шрифт
 SMALL_FONT = pygame.font.Font(None, 24)  # Маленький шрифт
 
@@ -117,7 +119,7 @@ PLOT_EVENTS = [
     # 2. Помощь престарелому на улице
     {
         "name": "Помощь престарелому на улице",
-        "bg": "png/corridor.png",
+        "bg": "png/bus_station.png",
         "text": [
             "Пожилой человек: «Простите, молодой человек, вы не подскажете, как добраться до библиотеки? Я заблудился…»"
         ],
@@ -146,7 +148,7 @@ PLOT_EVENTS = [
     # 3. Стихийная встреча в коридоре общежития
     {
         "name": "Стихийная встреча в коридоре",
-        "bg": "png/corridor.png",
+        "bg": "png/obshaga.png",
         "text": [
             "Соседка: «Привет! Извини, давно хотела спросить… У меня в комнате свет мигает, может, ты поможешь?»"
         ],
@@ -172,7 +174,7 @@ PLOT_EVENTS = [
     # 4. Непредвиденный тест на занятиях
     {
         "name": "Непредвиденный тест",
-        "bg": "png/corridor.png",
+        "bg": "png/auditory.png",
         "text": [
             "Преподаватель: «Сегодня контрольная. Без предупреждения! Кто не готов — придётся показать смекалку.»"
         ],
@@ -198,7 +200,7 @@ PLOT_EVENTS = [
     # 5. Разговор в библиотеке
     {
         "name": "Разговор в библиотеке",
-        "bg": "png/corridor.png",
+        "bg": "png/library.png",
         "text": [
             "Студентка: «Подскажи, у тебя случайно нет конспектов по физике? Я слышала, ты хорошо конспектировал последнюю лекцию.»"
         ],
@@ -221,7 +223,7 @@ PLOT_EVENTS = [
     # 6. Помощь в сложную минуту
     {
         "name": "Помощь в сложную минуту",
-        "bg": "png/corridor.png",
+        "bg": "png/need_money.png",
         "text": [
             "Студент: «Слушай, у меня сдача зачётов на носу, совсем нет денег, а я так голоден… Ты не подкинешь пару монет?»"
         ],
@@ -244,7 +246,7 @@ PLOT_EVENTS = [
     # 7. Помощь мальчику с листком
     {
         "name": "Помощь мальчику с листком",
-        "bg": "png/corridor.png",
+        "bg": "png/dark_street.png",
         "text": [
             "Мальчик: «Дядя, помогите пожалуйста, я потерялся. Мне мама написала адрес, но я не знаю где он.»"
         ],
@@ -271,9 +273,9 @@ PLOT_EVENTS = [
     # 8. Загадочное объявление о проекте
     {
         "name": "Загадочное объявление",
-        "bg": "png/corridor.png",
+        "bg": "png/misterios_project.png",
         "text": [
-            "«Ищу талантливого программиста для секретного проекта. Щедрый гонорар гарантирован.»"
+            "Надпись на плакате: «Ищу талантливого программиста для секретного проекта. Щедрый гонорар гарантирован.»"
         ],
         "options": [
             {
@@ -298,7 +300,7 @@ PLOT_EVENTS = [
     # 9. Приглашение на сбор средств
     {
         "name": "Сбор средств за кальмаров",
-        "bg": "png/corridor.png",
+        "bg": "png/kalmar.png",
         "text": [
             "Организатор: «Мы собираем деньги на спасение бедных кальмаров. Сможешь помочь?»"
         ],
@@ -327,7 +329,7 @@ PLOT_EVENTS = [
     # 10. Инцидент с велосипедом
     {
         "name": "Инцидент с велосипедом",
-        "bg": "png/corridor.png",
+        "bg": "png/bicycle.png",
         "text": [
             "Студент: «Чёрт! У меня цепь слетела, а я опаздываю на экзамен! Можешь помочь?»"
         ],
@@ -685,6 +687,7 @@ class Game:
         shop_items (dict): Словарь предметов магазина
     """
     def __init__(self):
+        self.last_scholarship_amount = None
         self.s_money = 0
         self.s_karma = 0
         self.s_study_progress = 0
@@ -1324,11 +1327,14 @@ def apply_display_mode(resolution, mode):
 
             return screen
         else:  # windowed
-            os.environ['SDL_VIDEO_CENTERED'] = '1'
-            return pygame.display.set_mode(
-                resolution,
-                RESIZABLE | pygame.HWSURFACE | pygame.DOUBLEBUF
+            screen = pygame.display.set_mode(resolution, pygame.RESIZABLE)
+
+            # Центрирование окна через SDL environ
+            os.environ['SDL_VIDEO_WINDOW_POS'] = "%d,%d" % (
+                (screen.get_width() - resolution[0]) // 2,
+                (screen.get_height() - resolution[1]) // 2
             )
+            return screen
     except pygame.error as e:
         print(f"Ошибка при установке режима отображения: {e}")
         return pygame.display.set_mode((1280, 720), RESIZABLE)
@@ -1648,11 +1654,11 @@ def draw_state(screen, state, game, current_plot_text, settings_button, settings
         screen.blit(scaled_stat_bg, window_rect.topleft)
 
 
-        title_text = MAIN_FONT.render("Статистика дня", True, BLACK)
-        screen.blit(title_text, (current_width / 3.8, current_height / 10))
+        title_text = HAND_FONT.render("Статистика дня", True, BLACK)
+        screen.blit(title_text, (current_width / 3.8, current_height / 12.2))
 
-        title_text = MAIN_FONT.render("Заработал", True, BLACK)
-        screen.blit(title_text, (current_width / 5, current_height / 7))
+        title_text = HAND_FONT.render("Заработал:", True, BLACK)
+        screen.blit(title_text, (current_width / 5, current_height / 7.5))
 
         stats = game.get_daily_stats()
         lines = [
@@ -1661,20 +1667,20 @@ def draw_state(screen, state, game, current_plot_text, settings_button, settings
             f"Знания: {stats['study_change']:.1f}"
         ]
 
-        y = current_height / 5.3
+        y = current_height / 7.5 + 60
         for line in lines:
-            text = MAIN_FONT.render(line, True, BLACK)
+            text = HAND_FONT.render(line, True, BLACK)
             screen.blit(text, (current_width / 5, y))
             y += 60
 
         continue_button = Button(
-            x=(current_width - 200) // 2,  # Центрируем по горизонтали
+            x=current_width // 1.3,  # Центрируем по горизонтали
             y=current_height - 80,  # 80 пикселей от нижнего края
             width=200,
             height=50,
             text="Продолжить",
-            color=GREEN,
-            text_color=WHITE
+            color=YELLOW,
+            text_color=BLACK
         )
         continue_button.draw(screen)
         mouse_pos = pygame.mouse.get_pos()
@@ -1700,11 +1706,17 @@ def draw_state(screen, state, game, current_plot_text, settings_button, settings
         scaled_stat_bg = pygame.transform.scale(stat_bg, current_screen_size)
         screen.blit(scaled_stat_bg, window_rect.topleft)
 
-        title_text = MAIN_FONT.render("Месячная статистика", True, BLACK)
-        screen.blit(title_text, (current_width / 3.8, current_height / 10))
+        title_text = HAND_FONT.render("Месячная статистика", True, BLACK)
+        screen.blit(title_text, (current_width / 3.8, current_height / 12.2))
 
-        title_text = MAIN_FONT.render("Заработал", True, BLACK)
-        screen.blit(title_text, (current_width / 5, current_height / 7))
+        title_text = HAND_FONT.render("Заработал", True, BLACK)
+        screen.blit(title_text, (current_width / 5, current_height / 7.5))
+
+        title_text = HAND_FONT.render("Деньги", True, BLACK)
+        screen.blit(title_text, (current_width / 1.9, current_height / 7.3))
+
+        title_text = HAND_FONT.render("Знания", True, BLACK)
+        screen.blit(title_text, (current_width / 1.9, current_height / 7.5 + (current_height / 21) * 6))
 
         stats = {
             "Деньги:": game.monthly_money_change,
@@ -1712,9 +1724,9 @@ def draw_state(screen, state, game, current_plot_text, settings_button, settings
             "Знания:": game.monthly_study_progress
         }
 
-        y = current_height / 5.3
+        y = current_height / 7.5 + 60
         for key, value in stats.items():
-            text = MAIN_FONT.render(f"{key} {value}", True, BLACK)
+            text = HAND_FONT.render(f"{key} {value}", True, BLACK)
             screen.blit(text, (current_width / 5, y))
             y += 60
 
@@ -1723,13 +1735,13 @@ def draw_state(screen, state, game, current_plot_text, settings_button, settings
         draw_monthly_graph(screen, game.monthly_money_history, game.monthly_study_history, graph_rect, game)
 
         continue_button = Button(
-            x=(current_width - 200) // 2,
+            x=current_width // 1.3,
             y=current_height - 80,
             width=200,
             height=50,
             text="Продолжить",
-            color=GREEN,
-            text_color=WHITE
+            color=YELLOW,
+            text_color=BLACK
         )
         continue_button.draw(screen)
         mouse_pos = pygame.mouse.get_pos()
@@ -2170,8 +2182,8 @@ def main():
     current_plot_text = ""
     state = "main_menu"
     prologue = None
-    settings = load_settings()
     buttons = {}
+    settings = load_settings()
     try:
         screen = apply_display_mode(settings["resolution"], settings["display_mode"])
     except pygame.error:
