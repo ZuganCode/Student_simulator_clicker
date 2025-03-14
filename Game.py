@@ -2,9 +2,13 @@ import json
 import random
 import sys
 import os
+from data import PLOT_EVENTS, ENDING_ARMY, ENDING_PRISON, ENDING_BORING_JOB, ENDING_DREAM, SUMMER_1, SUMMER_2, SUMMER_3, HNY, PROLOGUE_DATA
+from game_objects import Event, Ending
+from pygame.examples.sprite_texture import event
 os.environ['SDL_VIDEO_CENTERED'] = '1'
 import pygame
 from pygame.locals import RESIZABLE
+
 
 """O Great God of Code!
 
@@ -27,14 +31,17 @@ and every bug that goes unnoticed dissolves in the ancient scrolls of Your wisdo
 
 Amen."""
 
+
 # Инициализация Pygame
 pygame.init()
+
 
 # Настройка экрана
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), RESIZABLE)
 pygame.display.set_caption("Симулятор Студенческой Жизни")
+
 
 # Цвета
 WHITE = (255, 255, 255)  # Белый
@@ -46,10 +53,13 @@ RED = (250, 50, 50)  # Красный
 YELLOW = (255, 255, 0)  # Желтый
 PURPLE = (128, 0, 128)  # Фиолетовый
 
+
 # Шрифты
+pygame.font.init()
 HAND_FONT = pygame.font.SysFont('Comic Sans MS', 36)
 MAIN_FONT = pygame.font.Font(None, 36)  # Основной шрифт
 SMALL_FONT = pygame.font.Font(None, 24)  # Маленький шрифт
+
 
 # Константы для файла настроек
 SETTINGS_FILE = "settings.json"
@@ -57,11 +67,13 @@ SETTINGS_FILE = "settings.json"
 
 current_settings_section = None
 
+
 SETTINGS_SECTIONS = {
     "main": "main",  # Главное меню настроек
     "display": "display",  # Настройки экрана
     "sound": "sound"  # Настройки звука
 }
+
 
 # Режимы отображения
 DISPLAY_MODES = {
@@ -71,328 +83,18 @@ DISPLAY_MODES = {
 }
 
 
-# Пролог
-PROLOGUE_DATA = [
-    {"image": "png\prologue1.png", "text": "Вы начинаете свой путь в университете...", "duration": 1000},
-    {"image": "png\prologue2.png", "text": "Мама: Учись, сынок, диплом — это твоё будущее", "duration": 1000},
-    {"image": "png\prologue3.png", "text": "Новенький? На вахте узнай куда тебе.", "duration": 1000},
-    {"image": "png\prologue4.png", "text": "Вот это хоромы!", "duration": 1000},
-    {"image": "png\prologue5.png", "text": "* сосед храпит, а за стенкой, кто-то играет на гитаре и поёт песни* \n Не могу уснуть, посмотрю, что в соцсетях. ", "duration": 1000},
-    {"image": "png\prologue5.png", "text": "Кто-то из одногруппников купил машину, а кто-то только вернулся из поездки в Дубай. А я тут, в этой клетке 3x4 метра, с мечтой о дипломе, который, как уверяют, «откроет все двери». ", "duration": 1000},
-    {"image": "png\prologue6.png", "text": "Но двери — это не то, что я хотел. Всю ночь я ворочался, слушая, как за стеной кто-то играл на гитаре.", "duration": 1000},
-    {"image": "png\prologue7.png", "text": "Почему я должен жить в этом сером мире, когда хочу туда. Мне нужен не диплом и выживание. Мне нужна та жизнь, та машина и хороший дом. То что скажет за меня, что я не из чёртовой общаги. ", "duration": 1000},
-    {"image": "png\prologue8.png", "text": "Сосед: Да, есть килл!", "duration": 1000},
-    {"image": "png\prologue8.png", "text": "«Четыре года, — прошептал я. — Четыре года, чтобы заработать на ту жизнь. Но как?».", "duration": 1000},
-    {"image": "png\prologue8.png", "text": "«Учёба, лабы, сессии... А если не сдашь — армия. Но если только учиться, когда зарабатывать?»", "duration": 1000},
-    {"image": "png\prologue8.png", "text": "В интернете нашёл и прочитал про майнинг, подработки, трейдин и как прокачаться с нуля. «Надо крутиться. Учёба – чтобы не отчислили. Заработок – чтобы не сойти с ума от безнадёги»  ", "duration": 1000},
-    {"image": "png\prologue8.png", "text": "Пока сосед играл я не могу уснуть и изучал всё что мне может пригодиться, чтобы вылезти из этой ситуации. Так я и просидел до 3-х ночи.  ", "duration": 1000},
-    {"image": "png\prologue6.png", "text": "Аааа, спать охота.  ", "duration": 1000},
-    {"image": "png\prologue9.png", "text": "Преподаватель: «Молодой человек, если не сдадите лабу до пятницы, будете в армии отсыпаться!».  ", "duration": 1000},
-    {"image": "png\prologue4.png", "text": "Чем же в итоге заниматься?  ", "duration": 1000},
-]
+cheat_input_active = False
+cheat_code = ""
+cheat_message = ""
 
-# Сюжетные события
-PLOT_EVENTS = [
-    # 1. Встреча с однокурсником
-    {
-        "name": "Встреча с однокурсником",
-        "bg": "png/corridor.png",
-        "text": [
-            "Однокурсник: «Привет! Слушай, ты ведь уже сделал домашнее задание? Можешь помочь разобраться? Я совсем запутался.»"
-        ],
-        "options": [
-            {
-                "text": "«Привет. Да, я вчера как раз закончил. Что именно не понял? Давай объясню.» 50 энергии",
-                "effects": {"energy": -50, "karma": +1, "study_bonus": 10},
-                "one_time": False,
-                "message": "Вы помогли однокурснику и сами лучше поняли тему.(+1 карма, +10 к учёбе)"
-            },
-            {
-                "text": "«Привет. Неа, так что не помогу.»",
-                "effects": {"karma": -1},
-                "one_time": False,
-                "message": "Вы не помогли однокурснику и его завалили на паре.(-1 карма)"
-            }
-        ]
-    },
 
-    # 2. Помощь престарелому на улице
-    {
-        "name": "Помощь престарелому на улице",
-        "bg": "png/bus_station.png",
-        "text": [
-            "Пожилой человек: «Простите, молодой человек, вы не подскажете, как добраться до библиотеки? Я заблудился…»"
-        ],
-        "options": [
-            {
-                "text": "«Проводить лично» 100 энергии",
-                "effects": {"energy": -100, "karma": +2, "endurance": +5},
-                "one_time": False,
-                "message": "Вы помогли дедушке, он вам рассказал много интересных историй и дал конфетку.(+2 карма, +5 к настрою)"
-            },
-            {
-                "text": "«Быстро объяснить и пойти по делам» 20 энергии",
-                "effects": {"energy": -20},
-                "one_time": False,
-                "message": "Вы помогли дедушке, но потерялся."
-            },
-            {
-                "text": "Пройти мимо",
-                "effects": {"karma": -1},
-                "one_time": False,
-                "message": "Вы не помогли дедушке и он не нашёл дорогу.(-1 карма)"
-            }
-        ]
-    },
+def init_cheat_window(screen):
+    global CHEAT_BACKGROUND
+    # Создаем полупрозрачный фон (50% прозрачности)
+    CHEAT_BACKGROUND = pygame.Surface((screen.get_width(), screen.get_height()))
+    CHEAT_BACKGROUND.set_alpha(128)  # 50% прозрачности
+    CHEAT_BACKGROUND.fill((0, 0, 0))  # Черный фон
 
-    # 3. Стихийная встреча в коридоре общежития
-    {
-        "name": "Стихийная встреча в коридоре",
-        "bg": "png/obshaga.png",
-        "text": [
-            "Соседка: «Привет! Извини, давно хотела спросить… У меня в комнате свет мигает, может, ты поможешь?»"
-        ],
-        "options": [
-            {
-                "text": "«Давай попробую, но ничего не обещаю.» 50 энергии",
-                "effects": {"energy": -50, "karma": 1},
-                "success": {"chance": 0.6, "study_bonus": 10,
-                            "message": "Вы помогли и взамен вам помогли с учёбой.(+1 карма, +10 к учёбе)"},
-                "failure": {"chance": 0.4,"energy": -50,
-                            "message": "Вы пытались помочь, но вас ударило током.(+1 карма, -50 энергии)"},
-                "one_time": False
-            },
-            {
-                "text": "«Посоветовать вызвать специалиста»",
-                "effects": {"karma": -1, "message": "Вы отказались помогать.(-1 карма)"},
-                "message": "Вы отказались помогать.(-1 карма)",
-                "one_time": False
-            }
-        ]
-    },
-
-    # 4. Непредвиденный тест на занятиях
-    {
-        "name": "Непредвиденный тест",
-        "bg": "png/auditory.png",
-        "text": [
-            "Преподаватель: «Сегодня контрольная. Без предупреждения! Кто не готов — придётся показать смекалку.»"
-        ],
-        "options": [
-            {
-                "text": "«Попытаться списать»",
-                "effects": {},
-                "success": {"chance": 0.5,"study_score": +30,
-                            "message": "Вы попытались списать и получили 5!(+30 к учёбе)"},
-                "failure": {"chance": 0.5,"study_score": -20,
-                            "message": "Вы попытали списать, но у вас заметили и поставили вам 2!(-20 к учёбе)"},
-                "one_time": False
-            },
-            {
-                "text": "«Честно писать со своими знаниями»",
-                "effects": {"study_score": +10},
-                "one_time": False,
-                "message": "Вы писали честно и получили 4.(+10 к учёбе)"
-            }
-        ]
-    },
-
-    # 5. Разговор в библиотеке
-    {
-        "name": "Разговор в библиотеке",
-        "bg": "png/library.png",
-        "text": [
-            "Студентка: «Подскажи, у тебя случайно нет конспектов по физике? Я слышала, ты хорошо конспектировал последнюю лекцию.»"
-        ],
-        "options": [
-            {
-                "text": "«Дать конспекты» 25 энергии",
-                "effects": {"energy": -25, "karma": +1, "study_bonus": 10},
-                "one_time": False,
-                "message": "Вы дали конспект и объяснили тему.(+1 карма, +10 к учёбе)"
-            },
-            {
-                "text": "«Оставить конспекты при себе»",
-                "effects": {"karma": -1},
-                "one_time": False,
-                "message": "Вы не помогли студентке.(-1 карма)"
-            }
-        ]
-    },
-
-    # 6. Помощь в сложную минуту
-    {
-        "name": "Помощь в сложную минуту",
-        "bg": "png/need_money.png",
-        "text": [
-            "Студент: «Слушай, у меня сдача зачётов на носу, совсем нет денег, а я так голоден… Ты не подкинешь пару монет?»"
-        ],
-        "options": [
-            {
-                "text": "«Одолжить деньги» 1000 монет",
-                "effects": {"money": -1000, "karma": +2},
-                "one_time": False,
-                "message": "Вы помогли студенту в трудную минуту.(+2 карма)"
-            },
-            {
-                "text": "«Отказать»",
-                "effects": {"karma": -1},
-                "one_time": False,
-                "message": "Вы не помогли студенту.(-1 карма)"
-            }
-        ]
-    },
-
-    # 7. Помощь мальчику с листком
-    {
-        "name": "Помощь мальчику с листком",
-        "bg": "png/dark_street.png",
-        "text": [
-            "Мальчик: «Дядя, помогите пожалуйста, я потерялся. Мне мама написала адрес, но я не знаю где он.»"
-        ],
-        "options": [
-            {
-                "text": "«Давай помогу, найдём куда тебе надо.» 50 энергии",
-                "effects": {
-                    "energy": -50,
-                    "money": -5000,
-                    "endurance": -10
-                },
-                "one_time": False,
-                "message": "Вы хотели помочь мальчику, но он вас завёл в переулок, где на вас напили бандиты.(-5000 монет, -10 настрой)"
-            },
-            {
-                "text": "«Сам найдётся»",
-                "effects": {},
-                "one_time": False,
-                "message": "Ничего не произошло"
-            }
-        ]
-    },
-
-    # 8. Загадочное объявление о проекте
-    {
-        "name": "Загадочное объявление",
-        "bg": "png/misterios_project.png",
-        "text": [
-            "Надпись на плакате: «Ищу талантливого программиста для секретного проекта. Щедрый гонорар гарантирован.»"
-        ],
-        "options": [
-            {
-                "text": "«Позвонить по указанному номеру» 200 энергии",
-                "effects": {"energy": -200},
-                "success": {"chance": 0.2,"money": +80000,
-                "message": "Вы хорошо поработали и вам заплатили 80000"},
-                "mid": {"money": +5000, "chance": 0.3,
-                "message": "Вы усердно работали и вам заплатили всего 5000"},
-                "failure": {"chance": 0.5,"endurance": -5,
-                "message": "Вы много работали, но вас обманули (-5 настроение)"},
-                "one_time": False
-            },
-            {
-                "text": "«Пройти мимо»",
-                "effects": {},
-                "one_time": False
-            }
-        ]
-    },
-
-    # 9. Приглашение на сбор средств
-    {
-        "name": "Сбор средств за кальмаров",
-        "bg": "png/kalmar.png",
-        "text": [
-            "Организатор: «Мы собираем деньги на спасение бедных кальмаров. Сможешь помочь?»"
-        ],
-        "options": [
-            {
-                "text": "«Помочь организационно» 200 энергии",
-                "effects": {"energy": -200, "karma": +3, "discount": True},
-                "one_time": False,
-                "message": "Вы помогли с организацией и познакомились с разными людьми.(+3 карма, скидка на военный билет)"
-            },
-            {
-                "text": "«Сделать денежный взнос» 4000 монет",
-                "effects": {"money": -4000, "karma": +2, "endurance": +5},
-                "one_time": False,
-                "message": "Вы сделали решающий вклад в спасение кальмаров. (+2 карма, +5 настрой)"
-            },
-            {
-                "text": "«Отказаться полностью»",
-                "effects": {},
-                "one_time": False,
-                "message": "Ничего не произошло"
-            }
-        ]
-    },
-
-    # 10. Инцидент с велосипедом
-    {
-        "name": "Инцидент с велосипедом",
-        "bg": "png/bicycle.png",
-        "text": [
-            "Студент: «Чёрт! У меня цепь слетела, а я опаздываю на экзамен! Можешь помочь?»"
-        ],
-        "options": [
-            {
-                "text": "«Давай помогу» 40 энергии",
-                "effects": {"energy": -40, "karma": +1},
-                "one_time": False,
-                "message": "Вы помогли студенту и он вам дал жвачку.(+1 к карме)"
-            },
-            {
-                "text": "«Я и сам опаздываю»",
-                "effects": {"karma": -1},
-                "one_time": False,
-                "message": "Вы отказались помочь.(-1 к карме)"
-            }
-        ]
-    },
-
-    # 11. Конкурс стартапов
-    {
-        "name": "Конкурс стартапов",
-        "bg": "png/corridor.png",
-        "text": [
-            "Преподаватель: «У нас объявляется конкурс стартапов. Приз — грант на развитие идеи!»"
-        ],
-        "options": [
-            {
-                "text": "«Стоит попробовать»",
-                "effects": {"startup_participated": True},
-                "one_time": True
-            },
-            {
-                "text": "«Отказаться»",
-                "effects": {},
-                "one_time": False
-            }
-        ]
-    },
-
-    # 12. Спорт секция
-    {
-        "name": "Спорт секция",
-        "bg": "png/corridor.png",
-        "text": [
-            "Тренер: «Вижу что ты набираешь форму, почему бы не ходить ко мне в секцию?»"
-        ],
-        "options": [
-            {
-                "text": "«Да, давайте» 100 энергии сейчас и 150 энергии навсегда",
-                "effects": {"energy_cost": -100, "max_energy": -150,"gym_participated": True},
-                "one_time": True,
-                "message": "Вы начинаете заниматься в спортивном зале.(+10 к настрою навсегда)"
-            },
-            {
-                "text": "«Нет, мне такое не надо»",
-                "effects": {},
-                "one_time": False,
-                "message": "Ничего не произошло"
-            }
-        ]
-    }
-]
 
 def get_monitor_resolution():
     """
@@ -402,6 +104,7 @@ def get_monitor_resolution():
     """
     info = pygame.display.Info()
     return [info.current_w, info.current_h]
+
 
 def load_settings():
     """
@@ -433,111 +136,13 @@ def save_settings(resolution, display_mode):
     with open(SETTINGS_FILE, "w") as f:
         json.dump(data, f)
 
+
 # Инициализация экрана с загруженными настройками
 settings = load_settings()
 resolution = settings["resolution"]  # Получаем список с разрешением
 screen = pygame.display.set_mode((resolution[0], resolution[1]), RESIZABLE)
 pygame.display.set_caption("Симулятор Студенческой Жизни")
 
-
-class Button:
-    """
-       Класс для создания и управления кнопками интерфейса.
-
-       Атрибуты:
-           rect (pygame.Rect): Прямоугольник кнопки
-           text (str): Текст на кнопке
-           color (tuple): Цвет кнопки RGB
-           text_color (tuple): Цвет текста RGB
-           hover_color (tuple): Цвет при наведении
-
-       Методы:
-           draw(surface): Отрисовывает кнопку на поверхности
-           is_clicked(pos): Проверяет клик по кнопке
-           update(mouse_pos): Обновляет состояние при наведении
-       """
-    def __init__(self, x, y, width, height, text, color, text_color, icon=None):
-        assert isinstance(color, tuple) and len(color) == 3, "Цвет должен быть кортежем из 3 чисел!"
-        assert all(0 <= c <= 255 for c in color), "Каждый канал цвета должен быть от 0 до 255!"
-
-        self.rect = pygame.Rect(x, y, width, height)
-        self.text = text
-        self.color = color
-        self.text_color = text_color
-        self.default_color = color
-        self.hover_color = (min(color[0] + 30, 255), min(color[1] + 30, 255), min(color[2] + 30, 255))
-        self.current_color = color
-        self.icon = icon
-
-    def draw(self, surface):
-        """Рисует кнопку"""
-        pygame.draw.rect(surface, self.current_color, self.rect)
-        if self.icon:
-            screen.blit(self.icon, (self.rect.x, self.rect.y))
-        text_surface = SMALL_FONT.render(self.text, True, self.text_color)
-        text_rect = text_surface.get_rect(center=self.rect.center)
-        surface.blit(text_surface, text_rect)
-
-    def is_clicked(self, pos):
-        """Проверяет, нажата ли кнопка"""
-        return self.rect.collidepoint(pos)
-
-    def update(self, mouse_pos):
-        """Изменяет цвет кнопки при наведении"""
-        if self.rect.collidepoint(mouse_pos):
-            self.color = self.hover_color  # Меняем цвет при наведении
-        else:
-            self.color = self.default_color  # Возвращаем стандартный цвет
-
-    def handle_hover(self, mouse_pos):
-        """Обработка наведения мыши"""
-        if self.rect.collidepoint(mouse_pos):
-            self.current_color = self.hover_color
-        else:
-            self.current_color = self.default_color
-
-class GradientButton(Button):
-    """
-    Кнопка с градиентом прозрачности: центр менее прозрачный, края более.
-    """
-    def __init__(self, x, y, width, height, text, color, text_color, icon=None):
-        super().__init__(x, y, width, height, text, color, text_color, icon)
-        self.mask = self.create_gradient_mask(width, height)
-        self.default_color = color  # Сохраняем исходный цвет без альфа
-
-    def create_gradient_mask(self, width, height):
-        """Создает маску градиента альфа-канала."""
-        mask = pygame.Surface((width, height), pygame.SRCALPHA)
-        center_x, center_y = width // 2, height // 2
-        max_distance = ((width/2)**2 + (height/2)**2)**0.5
-        for y in range(height):
-            for x in range(width):
-                dx = x - center_x
-                dy = y - center_y
-                distance = (dx**2 + dy**2)**0.5
-                # Альфа-канал: 0 (прозрачно) на краях, 255 (непрозрачно) в центре
-                alpha = int(255 * (distance / max_distance))  # Обратный градиент
-                alpha = 255 - alpha  # Центрopaque, края прозрачные
-                alpha = max(alpha, 50)  # Минимум 50% прозрачности в центре
-                mask.set_at((x, y), (255, 255, 255, alpha))
-        return mask
-
-    def draw(self, surface):
-        """Отрисовывает кнопку с градиентом."""
-        # Основная поверхность кнопки с цветом и маской
-        base_color = pygame.Surface((self.rect.width, self.rect.height), pygame.SRCALPHA)
-        base_color.fill(self.color)  # Цвет кнопки без альфа
-        # Применяем маску для градиента прозрачности
-        masked = base_color.copy()
-        masked.blit(self.mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
-        # Отрисовываем на экране
-        surface.blit(masked, self.rect)
-        # Отрисовываем текст и иконку поверх градиента
-        text_surface = SMALL_FONT.render(self.text, True, self.text_color)
-        text_rect = text_surface.get_rect(center=self.rect.center)
-        surface.blit(text_surface, text_rect)
-        if self.icon:
-            surface.blit(self.icon, (self.rect.x + 10, self.rect.y + 10))  # Отступ для иконки
 
 class Prologue:
     """
@@ -565,6 +170,7 @@ class Prologue:
         self.text_fully_revealed = False
         self.char_delay = 50  # Задержка между символами (в миллисекундах)
 
+
     def load_frames(self):
         for data in PROLOGUE_DATA:
             try:
@@ -584,6 +190,7 @@ class Prologue:
                     "text": data["text"],
                     "duration": data["duration"]
                 })
+
 
     def handle_input(self, events):
         for event in events:
@@ -605,6 +212,7 @@ class Prologue:
                     return True
         return True
 
+
     def update(self):
         """Обновляет текущий кадр пролога"""
         if not self.text_fully_revealed:
@@ -622,13 +230,14 @@ class Prologue:
 
         return True
 
+
     def draw(self, surface):
         """Отображает текущий кадр пролога"""
         frame = self.frames[self.current_frame]
         surface.blit(frame["image"], (0, 0))
 
         # Полупрозрачное окно для текста
-        dialog_height = surface.get_height() // 3
+        dialog_height = surface.get_height() // 4
         dialog = pygame.Surface((surface.get_width(), dialog_height), pygame.SRCALPHA)
         dialog.fill((0, 0, 0, 180))
 
@@ -670,6 +279,129 @@ class Prologue:
 
         surface.blit(dialog, (0, surface.get_height() - dialog_height))
 
+        # Индикатор продолжения
+        if self.text_fully_revealed:
+            indicator_text = font.render("Нажмите любую клавишу для продолжения...", True, (200, 200, 200))
+            indicator_rect = indicator_text.get_rect(center=(self.screen_size[0] / 2, self.screen_size[1] - 30))
+            surface.blit(indicator_text, indicator_rect)
+
+
+class Button:
+    """
+       Класс для создания и управления кнопками интерфейса.
+
+       Атрибуты:
+           rect (pygame.Rect): Прямоугольник кнопки
+           text (str): Текст на кнопке
+           color (tuple): Цвет кнопки RGB
+           text_color (tuple): Цвет текста RGB
+           hover_color (tuple): Цвет при наведении
+
+       Методы:
+           draw(surface): Отрисовывает кнопку на поверхности
+           is_clicked(pos): Проверяет клик по кнопке
+           update(mouse_pos): Обновляет состояние при наведении
+       """
+    def __init__(self, x, y, width, height, text, color, text_color, icon=None):
+        assert isinstance(color, tuple) and len(color) == 3, "Цвет должен быть кортежем из 3 чисел!"
+        assert all(0 <= c <= 255 for c in color), "Каждый канал цвета должен быть от 0 до 255!"
+
+        self.rect = pygame.Rect(x, y, width, height)
+        self.text = text
+        self.color = color
+        self.text_color = text_color
+        self.default_color = color
+        self.hover_color = (min(color[0] + 30, 255), min(color[1] + 30, 255), min(color[2] + 30, 255))
+        self.current_color = color
+        self.icon = icon
+
+
+    def draw(self, surface):
+        """Рисует кнопку"""
+        pygame.draw.rect(surface, self.current_color, self.rect)
+        if self.icon:
+            screen.blit(self.icon, (self.rect.x, self.rect.y))
+        text_surface = SMALL_FONT.render(self.text, True, self.text_color)
+        text_rect = text_surface.get_rect(center=self.rect.center)
+        surface.blit(text_surface, text_rect)
+
+
+    def is_clicked(self, pos):
+        """Проверяет, нажата ли кнопка"""
+        return self.rect.collidepoint(pos)
+
+
+    def update(self, mouse_pos):
+        """Изменяет цвет кнопки при наведении"""
+        if self.rect.collidepoint(mouse_pos):
+            self.color = self.hover_color  # Меняем цвет при наведении
+        else:
+            self.color = self.default_color  # Возвращаем стандартный цвет
+
+
+    def handle_hover(self, mouse_pos):
+        """Обработка наведения мыши"""
+        if self.rect.collidepoint(mouse_pos):
+            self.current_color = self.hover_color
+        else:
+            self.current_color = self.default_color
+
+
+class GradientButton(Button):
+    """
+    Кнопка с градиентом прозрачности: центр менее прозрачный, края более.
+    """
+    def __init__(self, x, y, width, height, text, color, text_color, icon=None):
+        super().__init__(x, y, width, height, text, color, text_color, icon)
+        self.mask = self.create_gradient_mask(width, height)
+        self.default_color = color  # Сохраняем исходный цвет без альфа
+
+
+    def create_gradient_mask(self, width, height):
+        """Создает маску градиента альфа-канала."""
+        mask = pygame.Surface((width, height), pygame.SRCALPHA)
+        center_x, center_y = width // 2, height // 2
+        max_distance = ((width/2)**2 + (height/2)**2)**0.5
+        for y in range(height):
+            for x in range(width):
+                dx = x - center_x
+                dy = y - center_y
+                distance = (dx**2 + dy**2)**0.5
+                # Альфа-канал: 0 (прозрачно) на краях, 255 (непрозрачно) в центре
+                alpha = int(255 * (distance / max_distance))  # Обратный градиент
+                alpha = 255 - alpha  # Центрopaque, края прозрачные
+                alpha = max(alpha, 50)  # Минимум 50% прозрачности в центре
+                mask.set_at((x, y), (255, 255, 255, alpha))
+        return mask
+
+
+    def draw(self, surface):
+        """Отрисовывает кнопку с градиентом."""
+        # Основная поверхность кнопки с цветом и маской
+        base_color = pygame.Surface((self.rect.width, self.rect.height), pygame.SRCALPHA)
+        base_color.fill(self.color)  # Цвет кнопки без альфа
+        # Применяем маску для градиента прозрачности
+        masked = base_color.copy()
+        masked.blit(self.mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+        # Отрисовываем на экране
+        surface.blit(masked, self.rect)
+        # Отрисовываем текст и иконку поверх градиента
+        text_surface = SMALL_FONT.render(self.text, True, self.text_color)
+        text_rect = text_surface.get_rect(center=self.rect.center)
+        surface.blit(text_surface, text_rect)
+        if self.icon:
+            surface.blit(self.icon, (self.rect.x + 10, self.rect.y + 10))  # Отступ для иконки
+
+
+CHEAT_CODES = {
+    "`godmode": lambda game, _: setattr(game, "money", 999999),
+    "`max_energy": lambda game, _: setattr(game, "energy", game.max_energy),
+    "`invincible": lambda game, _: setattr(game, "illegal_activity_score", -50),
+    "`win": lambda game, _: setattr(game, "total_days", 465),
+    "`addmoney": lambda game, param: game.add_money(int(param)),
+    "`set_day": lambda game, param: setattr(game, "total_days", int(param)),
+}
+
 
 class Game:
     """
@@ -687,6 +419,8 @@ class Game:
         shop_items (dict): Словарь предметов магазина
     """
     def __init__(self):
+        self.failed_exam = False
+        self.illegal_activity_score = 0
         self.last_scholarship_amount = None
         self.s_money = 0
         self.s_karma = 0
@@ -726,7 +460,7 @@ class Game:
         self.used_events = set()
         self.event_day = 0  # Текущий день в цикле вероятности
         self.max_event_days = 5  # Максимальное число дней в цикле
-        self.current_plot_text = None
+        self.military_ID = False
         self.start_money = 0
         self.start_karma = 0
         self.start_study_progress = 0.0
@@ -739,6 +473,9 @@ class Game:
         self.monthly_start_money = self.money  # Начальное значение месяца
         self.monthly_start_karma = self.karma
         self.monthly_start_study_progress = self.study_progress
+        self.is_summer1_been = False
+        self.is_summer2_been = False
+        self.is_summer3_been = False
 
 
         screen_size = pygame.display.get_surface().get_size()
@@ -825,8 +562,10 @@ class Game:
         ]
         self.update_button_positions(pygame.display.get_surface().get_size())
 
+
     def update_screen_size(self):
         self.screen_size = pygame.display.get_surface().get_size()
+
 
     def add_money(self, amount):
         """
@@ -839,6 +578,7 @@ class Game:
             self.money += int(amount + 0.999999)
         else:
             self.money += int(amount)
+
 
     def update_button_positions(self, screen_size):
         """
@@ -888,6 +628,7 @@ class Game:
                 self.lab_completed = True
                 self.study_score += 10
 
+
     def work(self, energy_cost):
         """
     Выполняет действие работы.
@@ -901,6 +642,7 @@ class Game:
             self.add_money(income)
             self.energy -= energy_cost
 
+
     def get_daily_stats(self):
         """Возвращает изменения за текущий день."""
         return {
@@ -909,11 +651,13 @@ class Game:
             "study_change": self.study_progress - self.start_study_progress - self.s_study_progress
         }
 
+
     def start_day(self):
         """Сохраняет текущие значения как начальные для текущего дня."""
         self.start_money = self.money
         self.start_karma = self.karma
         self.start_study_progress = self.study_progress
+
 
     def process_day(self):
         """
@@ -1013,6 +757,40 @@ class Game:
 
         return random.choice(self.plot_inserts)
 
+
+    def update(self):
+        if self.total_days == 465:
+            if self.money >= 4000000:
+                self.total_days +=1
+                return "dream"
+            elif self.military_ID:
+                self.total_days += 1
+                return "boring_job"
+            else:
+                self.total_days += 1
+                return "army"
+
+        if self.illegal_activity_score >= 50:
+            return "prison"
+
+        if self.failed_exam:
+            return "army"
+
+        if self.total_days == 105 and self.is_summer1_been == False:
+            state = "summer1"
+            return state
+
+        if self.total_days == 225 and self.is_summer2_been == False:
+            return "summer2"
+
+        if self.total_days == 345 and self.is_summer3_been == False:
+            return "summer3"
+        if self.total_days == 45 or self.total_days == 165 or self.total_days ==285:
+            return "summer4"
+
+        return None
+
+
     def handle_event(self, event_data):
         current_screen_size = pygame.display.get_surface().get_size()  # Получаем актуальный размер
         try:
@@ -1068,6 +846,7 @@ class Game:
 
         return bg, buttons, text_surface
 
+
     def wrap_text(self, text, max_width, font):
         """Переносит текст, чтобы он влезал в указанную ширину."""
         words = text.split(' ')
@@ -1082,6 +861,7 @@ class Game:
         if current_line:
             lines.append(current_line.strip())
         return lines
+
 
     def apply_event_effects(self, selected_option):
         # Базовые эффекты (всегда применяются)
@@ -1177,10 +957,12 @@ class Game:
         # Сохраняем время для таймера сообщения
         self.message_timer = pygame.time.get_ticks()
 
+
     def set_current_plot_text(self, text):
         """Устанавливает текст и обновляет таймер"""
         self.current_plot_text = text
         self.message_timer = pygame.time.get_ticks()
+
 
     def check_message_timeout(self):
         """Проверяет, прошло ли время для скрытия сообщения"""
@@ -1190,6 +972,7 @@ class Game:
                 self.current_plot_text = None
                 self.message_timer = 0  # Сброс таймера
 
+
     def draw_game_screen(self, screen):
         screen.fill((255, 255, 255))
 
@@ -1198,6 +981,7 @@ class Game:
             font = pygame.font.Font(None, 36)
             text = font.render(self.current_plot_text, True, (0, 0, 0))
             screen.blit(text, (10, 10))
+
 
     def lottery(self):
         """
@@ -1220,6 +1004,7 @@ class Game:
         else:
             self.set_current_plot_text("Недостаточно денег для участия в лотерее.")
             return "Недостаточно денег для участия в лотерее."
+
 
     def save_game(self):
         """
@@ -1246,10 +1031,44 @@ class Game:
             "monthly_start_money": self.monthly_start_money,
             "monthly_start_karma": self.monthly_start_karma,
             "monthly_start_study_progress": self.monthly_start_study_progress,
+            "failed_exam": self.failed_exam,
+            "illegal_activity_score": self.illegal_activity_score,
+            "last_scholarship_amount": self.last_scholarship_amount,
+            "s_money": self.s_money,
+            "s_karma": self.s_karma,
+            "s_study_progress": self.s_study_progress,
+            "max_energy": self.max_energy,
+            "mining_income": self.mining_income,
+            "work_income": self.work_income,
+            "scholarship": self.scholarship,
+            "rent_paid": self.rent_paid,
+            "rent_cost": self.rent_cost,
+            "housing_bonus": self.housing_bonus,
+            "expensive_item_goal": self.expensive_item_goal,
+            "current_item_savings": self.current_item_savings,
+            "daily_expenses": self.daily_expenses,
+            "daily_expense_buff": self.daily_expense_buff,
+            "endurance": self.endurance,
+            "startup_participated": self.startup_participated,
+            "gym_participated": self.gym_participated,
+            "startup_phase": self.startup_phase,
+            "startup_started": self.startup_started,
+            "sport_endurance_bonus": self.sport_endurance_bonus,
+            "plot_events": self.plot_events,
+            "current_plot_text": self.current_plot_text,
+            "message_timer": self.message_timer,
+            "used_events": list(self.used_events),  # Преобразуем множество в список
+            "event_day": self.event_day,
+            "max_event_days": self.max_event_days,
+            "military_ID": self.military_ID,
+            "is_summer1_been": self.is_summer1_been,
+            "is_summer2_been": self.is_summer2_been,
+            "is_summer3_been": self.is_summer3_been,
             "current_month_day": self.current_month_day
         }
         with open("save.json", "w") as f:
             json.dump(data, f)
+
 
     def load_game(self):
         """
@@ -1280,8 +1099,42 @@ class Game:
                 self.monthly_start_karma = data.get("monthly_start_karma", self.karma)
                 self.monthly_start_study_progress = data.get("monthly_start_study_progress", self.study_progress)
                 self.current_month_day = data.get("current_month_day", 0)
+                self.failed_exam = data.get("failed_exam", False)
+                self.illegal_activity_score = data.get("illegal_activity_score", 0)
+                self.last_scholarship_amount = data.get("last_scholarship_amount", None)
+                self.s_money = data.get("s_money", 0)
+                self.s_karma = data.get("s_karma", 0)
+                self.s_study_progress = data.get("s_study_progress", 0)
+                self.max_energy = data.get("max_energy", 3000)
+                self.mining_income = data.get("mining_income", 10)
+                self.work_income = data.get("work_income", 20)
+                self.scholarship = data.get("scholarship", 1000)
+                self.rent_paid = data.get("rent_paid", True)
+                self.rent_cost = data.get("rent_cost", 100)
+                self.housing_bonus = data.get("housing_bonus", 0)
+                self.expensive_item_goal = data.get("expensive_item_goal", 5000)
+                self.current_item_savings = data.get("current_item_savings", 0)
+                self.daily_expenses = data.get("daily_expenses", 10)
+                self.daily_expense_buff = data.get("daily_expense_buff", 0)
+                self.endurance = data.get("endurance", 100)
+                self.startup_participated = data.get("startup_participated", False)
+                self.gym_participated = data.get("gym_participated", False)
+                self.startup_phase = data.get("startup_phase", 0)
+                self.startup_started = data.get("startup_started", False)
+                self.sport_endurance_bonus = data.get("sport_endurance_bonus", 0)
+                self.plot_events = data.get("plot_events", [])
+                self.current_plot_text = data.get("current_plot_text", None)
+                self.message_timer = data.get("message_timer", 0)
+                self.used_events = set(data.get("used_events", []))  # Преобразуем список обратно во множество
+                self.event_day = data.get("event_day", 0)
+                self.max_event_days = data.get("max_event_days", 5)
+                self.military_ID = data.get("military_ID", False)
+                self.is_summer1_been = data.get("is_summer1_been", False)
+                self.is_summer2_been = data.get("is_summer2_been", False)
+                self.is_summer3_been = data.get("is_summer3_been", False)
         except FileNotFoundError:
             print("Сохранение не найдено. Начинаем новую игру.")
+
 
     def whats_day(self):
         return self.total_days
@@ -1617,7 +1470,6 @@ def handle_shop_events(mouse_pos, game, category_buttons, subcategory_buttons, e
 
     return None
 
-stat_background = pygame.image.load("png/stat.png").convert_alpha()  # Загрузка фона
 
 def draw_state(screen, state, game, current_plot_text, settings_button, settings_icon,
                money_icon, energy_icon, current_width, current_height, prologue, buttons, stat_bg, event, mouse_pos):
@@ -1691,7 +1543,6 @@ def draw_state(screen, state, game, current_plot_text, settings_button, settings
                 return "game", current_plot_text  # Возвращаем новое состояние
 
 
-
     elif state == "end_of_month_stat":
         current_width, current_height = pygame.display.get_surface().get_size()
         current_screen_size = pygame.display.get_surface().get_size()
@@ -1716,7 +1567,7 @@ def draw_state(screen, state, game, current_plot_text, settings_button, settings
         screen.blit(title_text, (current_width / 1.9, current_height / 7.3))
 
         title_text = HAND_FONT.render("Знания", True, BLACK)
-        screen.blit(title_text, (current_width / 1.9, current_height / 7.5 + (current_height / 21) * 6))
+        screen.blit(title_text, (current_width / 1.9, current_height / 7.5 + (current_height / 21) * 7))
 
         stats = {
             "Деньги:": game.monthly_money_change,
@@ -1764,7 +1615,7 @@ def draw_state(screen, state, game, current_plot_text, settings_button, settings
                          money_icon, energy_icon, current_width, current_height)
         if game.plot_events:
             current_event = game.plot_events[-1]
-            bg, event_buttons, text_surface = game.handle_event(current_event)  # Теперь 3 элемента
+            bg, event_buttons, text_surface = game.handle_event(current_event)
             screen.blit(bg, (0, 0))  # Фон события
 
             # Отрисовываем кнопки вариантов
@@ -1835,6 +1686,7 @@ def draw_monthly_graph(screen, money_history, study_history, rect, game):
         x_study = study_rect.x + i / days * study_rect.width
         y_study = study_rect.bottom - (study_history[i] / max_study) * study_rect.height
         pygame.draw.circle(screen, RED, (x_study, y_study), 2)
+
 
 def draw_main_menu(screen, buttons):
     """
@@ -2127,12 +1979,14 @@ def draw_prologue_choice(screen, current_width, buttons):
     for button in buttons.values():
         button.draw(screen)
 
+
 def handle_shop_purchase(game, item):
     if game.money >= item["price"]:
         game.money -= item["price"]
         # Добавить логику применения эффекта предмета
         return True, f"Вы купили {item['name']}!"
     return False, "Недостаточно денег!"
+
 
 def draw_exit_confirmation(screen, current_width, buttons):
     """
@@ -2153,11 +2007,118 @@ def draw_exit_confirmation(screen, current_width, buttons):
         button.draw(screen)
 
 
+def handle_ending(screen, ending_type, screen_size, clock):
+    """
+    Обрабатывает показ концовки и возврат в главное меню.
+    """
+    ending_data = {
+        "army": ENDING_ARMY,
+        "boring_job": ENDING_BORING_JOB,
+        "dream": ENDING_DREAM,
+        "prison": ENDING_PRISON
+    }
+
+    if ending_type in ending_data:
+        ending = Ending(ending_data[ending_type], screen_size)
+        fade_surface = pygame.Surface(screen_size)
+        fade_surface.fill((0, 0, 0))
+
+        # Плавное затемнение текущего экрана
+        for alpha in range(0, 255, 5):
+            screen.blit(fade_surface, (0, 0))
+            fade_surface.set_alpha(alpha)
+            pygame.display.flip()
+            clock.tick(200)
+
+        # Показ концовки
+        while not ending.is_finished():
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
+                    ending.next_frame()
+
+            ending.update()
+            ending.draw(screen)
+            pygame.display.flip()
+            clock.tick(60)
+
+        # Пауза перед возвратом в меню
+        pygame.time.wait(100)
+
+        # Плавное появление главного меню
+        fade_surface.set_alpha(255)
+        for alpha in range(255, 0, -5):
+            screen.blit(fade_surface, (0, 0))
+            fade_surface.set_alpha(alpha)
+            pygame.display.flip()
+            clock.tick(200)
+
+        return "main_menu"
+    return None
+
+
+def handle_summer_event(screen, summer_type, screen_size, clock):
+    """
+    Обрабатывает показ концовки и возврат в главное меню.
+    """
+    if not summer_type.startswith("summer"):
+        return None
+
+    event_data = {
+        "summer1": SUMMER_1,
+        "summer2": SUMMER_2,
+        "summer3": SUMMER_3,
+        "summer4": HNY
+    }
+
+    if summer_type in event_data:
+        summer = Event(event_data[summer_type], screen_size)
+        fade_surface = pygame.Surface(screen_size)
+        fade_surface.fill((0, 0, 0))
+
+        # Плавное затемнение текущего экрана
+        for alpha in range(0, 255, 5):
+            screen.blit(fade_surface, (0, 0))
+            fade_surface.set_alpha(alpha)
+            pygame.display.flip()
+            clock.tick(200)
+
+        while not summer.is_finished():
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
+                    summer.next_frame()
+
+            summer.update()
+            summer.draw(screen)
+            pygame.display.flip()
+            clock.tick(60)
+
+        # Пауза перед возвратом в меню
+        pygame.time.wait(100)
+
+        # Плавное появление главного меню
+        fade_surface.set_alpha(255)
+        for alpha in range(255, 0, -5):
+            screen.blit(fade_surface, (0, 0))
+            fade_surface.set_alpha(alpha)
+            pygame.display.flip()
+            clock.tick(200)
+
+        return "game"
+    return None
+
+
 def main():
     """
     Главная функция игры.
     """
     global current_settings_section, screen, subcategory_buttons, exit_button, category_buttons, main_menu_bg, game_bg
+    global cheat_input_active, cheat_code, cheat_message
 
     try:
         pygame.init()
@@ -2192,6 +2153,7 @@ def main():
 
     # Получаем текущие размеры экрана
     current_width, current_height = screen.get_size()
+    init_cheat_window(screen)
 
     # Загрузка иконок
     try:
@@ -2307,6 +2269,37 @@ def main():
         settings_button.rect.x = current_width - 60
         settings_button.update(mouse_pos)
 
+        ending_check = game.update()
+        if ending_check:
+            state = f"ending_{ending_check}"
+
+        if state.startswith("ending_"):
+            ending_type = state.split("_")[1]
+            new_state = handle_ending(screen, ending_type, (current_width, current_height), clock)
+            if new_state:
+                state = new_state
+                game.total_days += 1
+            else:
+                state = "game"
+
+        summer_check = game.update()
+        if summer_check and summer_check.startswith("summer"):
+            new_state = handle_summer_event(screen, summer_check, (current_width, current_height), clock)
+            if new_state:
+                state = new_state
+                if summer_check == "summer1":
+                    game.is_summer1_been = True
+                    game.energy -= 500
+                elif summer_check == "summer2":
+                    game.is_summer2_been = True
+                    game.energy -= 500
+                elif summer_check == "summer3":
+                    game.is_summer3_been = True
+                    game.energy -= 500
+                elif summer_check == "summer4":
+                    game.total_days += 1
+            else:
+                state = "game"
 
         if state == "game":
             game.update_button_positions((current_width, current_height))
@@ -2324,7 +2317,7 @@ def main():
                 running = False
                 break
 
-            if event.type == pygame.KEYDOWN:
+            elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     if state == "shop":
                         state = "game"
@@ -2339,6 +2332,33 @@ def main():
                         state = "main_menu"
                     elif state == "prologue_choice":
                         state = "new_game_warning"
+
+                if event.key == pygame.K_BACKQUOTE:
+                    cheat_input_active = not cheat_input_active
+                    cheat_code = ""
+                    cheat_message = ""
+                if cheat_input_active:
+                    if event.key == pygame.K_RETURN:
+                        cheat_code = cheat_code.strip()
+                        parts = cheat_code.split()
+                        if not parts:
+                            cheat_message = "Неверный формат"
+                        else:
+                            command = parts[0]
+                            if command in CHEAT_CODES:
+                                try:
+                                    param = parts[1] if len(parts) > 1 else ""
+                                    CHEAT_CODES[command](game, param)
+                                    cheat_message = f"Чит '{command}' активирован!"
+                                except (ValueError, IndexError) as e:
+                                    cheat_message = f"Ошибка: {e}"
+                            else:
+                                cheat_message = "Неизвестный чит"
+                        cheat_code = ""
+                    elif event.key == pygame.K_BACKSPACE:
+                        cheat_code = cheat_code[:-1]
+                    else:
+                        cheat_code += event.unicode
 
 
             if event.type == pygame.MOUSEBUTTONDOWN:
@@ -2433,7 +2453,29 @@ def main():
 
         game.check_message_timeout()  # Проверяем таймер сообщения
 
+        if cheat_input_active:
+            window_rect = pygame.Rect(20, 20, 760, 200)
+            window_surface = pygame.Surface((window_rect.width, window_rect.height), pygame.SRCALPHA)
+            window_surface.fill((0, 0, 0, 128))
+            screen.blit(window_surface, (window_rect.x, window_rect.y))
 
+            pygame.draw.rect(screen, (200, 200, 200), window_rect, 2)
+
+            input_rect = pygame.Rect(window_rect.x + 5, window_rect.y + 5, 750, 40)
+            pygame.draw.rect(screen, (40, 40, 40), input_rect)
+            input_text = HAND_FONT.render(cheat_code, True, (255, 255, 255))
+            screen.blit(input_text, (input_rect.x + 5, input_rect.y + 5))
+
+            if cheat_message:
+                message_rect = pygame.Rect(
+                    window_rect.x + 5,
+                    input_rect.bottom + 5,
+                    750,
+                    40
+                )
+                pygame.draw.rect(screen, (40, 40, 40), message_rect)
+                message_text = HAND_FONT.render(cheat_message, True, (255, 0, 0))
+                screen.blit(message_text, (message_rect.x + 5, message_rect.y + 5))
 
         # Обновление экрана
         pygame.display.flip()
