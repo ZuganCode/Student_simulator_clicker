@@ -476,6 +476,7 @@ class Game:
         self.is_summer1_been = False
         self.is_summer2_been = False
         self.is_summer3_been = False
+        self.work_manager = WorkManager(pygame.display.get_surface().get_size())
 
 
         screen_size = pygame.display.get_surface().get_size()
@@ -489,8 +490,8 @@ class Game:
 
         self.buttons = {
             "shop": Button(start_x, button_y, button_width, button_height, "Магазин", PURPLE, WHITE),
-            "work": Button(start_x + (button_width + button_spacing), button_y, button_width, button_height, "Работать",
-                           GREEN, WHITE),
+            "work": Button(start_x + (button_width + button_spacing), button_y,
+                           button_width, button_height, "Работать", GREEN, WHITE),
             "study": Button(start_x + (button_width + button_spacing) * 2, button_y, button_width, button_height,
                             "Учиться", BLUE, WHITE),
             "lottery": Button(start_x + (button_width + button_spacing) * 3, button_y, button_width, button_height,
@@ -567,6 +568,8 @@ class Game:
         self.screen_size = pygame.display.get_surface().get_size()
 
 
+
+
     def add_money(self, amount):
         """
     Изменяет количество денег игрока.
@@ -629,18 +632,7 @@ class Game:
                 self.study_score += 10
 
 
-    def work(self, energy_cost):
-        """
-    Выполняет действие работы.
 
-    Args:
-        energy_cost (int): Затраты энергии на работу
-    """
-        if self.energy >= energy_cost:
-            efficiency = random.uniform(0.8, 1.2)  # Эффективность работы (случайное значение)
-            income = self.work_income * (energy_cost / 20) * efficiency
-            self.add_money(income)
-            self.energy -= energy_cost
 
 
     def get_daily_stats(self):
@@ -1140,6 +1132,110 @@ class Game:
         return self.total_days
 
 
+class WorkManager:
+    def __init__(self, screen_size):
+        self.screen_size = screen_size
+        self.work_categories = ["Курьерство", "Фриланс", "Трейдинг", "P2P", "Скам"]
+        self.current_category = "Курьерство"
+        self.selected_order = None
+
+        # Новая структура данных для заказов
+        self.orders = {
+            "Курьерство": [
+                {"name": "Доставка еды", "desc": "Доставка из ресторана", "salary": 300},
+                {"name": "Посылка", "desc": "Доставка небольшой посылки", "salary": 500},
+                {"name": "Документы", "desc": "Срочная доставка документов", "salary": 700}
+            ],
+            "Фриланс": [
+                {"name": "Лендинг", "desc": "Создание одностраничного сайта", "salary": 2000},
+                {"name": "Мобильное приложение", "desc": "Простое приложение", "salary": 5000},
+                {"name": "CRM система", "desc": "Система управления клиентами", "salary": 10000}
+            ],
+            "Трейдинг": [
+                {"name": "Фьючерсы", "desc": "Высокий риск", "salary": 1500},
+                {"name": "Опционы", "desc": "Очень высокий риск", "salary": 2500},
+                {"name": "Акции", "desc": "Средний риск", "salary": 1000}
+            ],
+            "P2P": [
+                {"name": "Обмен валют", "desc": "Наличные/Безнал", "salary": 800},
+                {"name": "Гарант сервис", "desc": "Обеспечение сделки", "salary": 1200},
+                {"name": "Кредитование", "desc": "Микрозаймы", "salary": 1500}
+            ],
+            "Скам": [
+                {"name": "Фишинг", "desc": "Рискованно", "salary": 3000},
+                {"name": "Понизить репутацию", "desc": "Опасно", "salary": 5000},
+                {"name": "Закрыть доступ", "desc": "Критический риск", "salary": 10000}
+            ]
+        }
+
+    def draw_work_screen(self, screen, game, current_width):
+        screen.fill((30, 60, 30))
+
+        # Отрисовка категорий работ
+        category_x = 50
+        category_y = screen.get_height() - 70
+        button_width = (current_width - 300) // len(self.work_categories)
+        button_height = 50
+        button_spacing = 10
+
+        category_buttons = []
+        subcategory_buttons = []
+
+        for i, category in enumerate(self.work_categories):
+            color = GREEN if category == self.current_category else BLUE
+            button = Button(category_x + i * (button_width + button_spacing), category_y,
+                            button_width, button_height, category, color, WHITE)
+            button.draw(screen)
+            category_buttons.append(button)
+
+        # Отрисовка заказов в выбранной категории
+        orders = self.orders[self.current_category]
+        for i, order in enumerate(orders):
+            order_rect = pygame.Rect(50, 50 + i * 100, current_width - 100, 90)
+            pygame.draw.rect(screen, (50, 80, 50), order_rect)
+
+            name_text = f"{order['name']} — {order['desc']}"
+            salary_text = f"Оплата: ${order['salary']}"
+
+            name_surface = SMALL_FONT.render(name_text, True, WHITE)
+            salary_surface = SMALL_FONT.render(salary_text, True, YELLOW)
+
+            screen.blit(name_surface, (60, 60 + i * 100))
+            screen.blit(salary_surface, (60, 80 + i * 100))
+
+        exit_button = Button(current_width - 150, 20, 100, 50, "Выход", RED, WHITE)
+
+        return category_buttons, subcategory_buttons, exit_button
+
+    def handle_work_events(self, mouse_pos, game):
+        new_state = None
+
+        # Проверяем нажатие на категории
+        category_x = 50
+        category_y = game.screen_size[1] - 70
+        button_width = (game.screen_size[0] - 300) // len(self.work_categories)
+        button_height = 50
+        button_spacing = 10
+
+        for i, category in enumerate(self.work_categories):
+            rect = pygame.Rect(category_x + i * (button_width + button_spacing), category_y,
+                               button_width, button_height)
+            if rect.collidepoint(mouse_pos):
+                self.current_category = category
+                new_state = "work"
+
+        # Проверяем нажатие на заказы
+        orders = self.orders[self.current_category]
+        for i, order in enumerate(orders):
+            order_rect = pygame.Rect(50, 50 + i * 100, game.screen_size[0] - 100, 90)
+            if order_rect.collidepoint(mouse_pos):
+                # Логика выбора заказа
+                self.selected_order = order
+                game.set_current_plot_text(f"Вы выбрали заказ: {order['name']}")
+                new_state = "game"
+
+        return new_state
+
 def apply_display_mode(resolution, mode):
     """
     Применяет выбранный режим отображения.
@@ -1276,7 +1372,7 @@ def handle_mouse_events(mouse_pos, state, game, current_plot_text, settings_butt
                 if action == "study":
                     return "game", game.study(20)
                 elif action == "work":
-                    return "game", game.work(20)
+                    return "work", current_plot_text
                 elif action == "next_day":
                     stats = game.get_daily_stats()
                     if game.total_days % 30 == 0:
@@ -1372,6 +1468,12 @@ def handle_mouse_events(mouse_pos, state, game, current_plot_text, settings_butt
             exit_button_rect = pygame.Rect(current_width - 150, 20, 100, 50)
             if exit_button_rect.collidepoint(mouse_pos):
                 return "game", current_plot_text
+
+
+    elif state == "work":
+        new_state = game.work_manager.handle_work_events(mouse_pos, game)
+        if new_state:
+            return new_state, current_plot_text
 
     return state, current_plot_text
 
@@ -1624,6 +1726,10 @@ def draw_state(screen, state, game, current_plot_text, settings_button, settings
 
             # Отрисовываем текст события внизу
             screen.blit(text_surface, (0, screen.get_height() - text_surface.get_height()))
+
+    elif state == "work":
+        category_buttons, subcategory_buttons, exit_button = game.work_manager.draw_work_screen(
+            screen, game, current_width)
 
     elif state in ["settings", "game_settings"]:
         source_state = "game" if state == "game_settings" else "main_menu"
