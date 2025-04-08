@@ -347,6 +347,25 @@ class Button:
             self.current_color = self.default_color
 
 
+'''класс для кнопок покупки в магазине'''
+class BuyButton(Button):
+    def handle_click(self):
+        """Обработка нажатия на кнопку покупки"""
+        if self.game.money >= self.item["price"]:
+            self.game.money -= self.item["price"]
+            self.item["purchased"] = True
+
+            # Проверяем существование метода
+            if hasattr(self.game, 'save_shop_state') and callable(getattr(self.game, 'save_shop_state')):
+                self.game.save_shop_state()
+            else:
+                print("Метод save_shop_state не найден!")
+
+            return f"Вы успешно купили {self.item['name']}!"
+        else:
+            return "Недостаточно денег!"
+
+
 class GradientButton(Button):
     """
     Кнопка с градиентом прозрачности: центр менее прозрачный, края более.
@@ -478,6 +497,8 @@ class Game:
         self.is_summer3_been = False
         self.work_manager = WorkManager(pygame.display.get_surface().get_size())
 
+        self.shop_manager = ShopManager()
+
 
         screen_size = pygame.display.get_surface().get_size()
         button_width = 180
@@ -563,10 +584,52 @@ class Game:
         ]
         self.update_button_positions(pygame.display.get_surface().get_size())
 
-
+    #магазин
     def update_screen_size(self):
         self.screen_size = pygame.display.get_surface().get_size()
 
+    def save_shop_state(self):
+        """Сохраняет состояние магазина"""
+        try:
+            shop_data = {}
+            for category, items in self.shop_items.items():
+                if isinstance(items, dict):
+                    shop_data[category] = {}
+                    for subcat, subitems in items.items():
+                        shop_data[category][subcat] = [
+                            {"name": i["name"], "purchased": i.get("purchased", False)}
+                            for i in subitems
+                        ]
+                else:
+                    shop_data[category] = [
+                        {"name": i["name"], "purchased": i.get("purchased", False)}
+                        for i in items
+                    ]
+
+            with open("shop_state.json", "w") as f:
+                json.dump(shop_data, f)
+        except Exception as e:
+            print(f"Ошибка сохранения состояния магазина: {e}")
+
+    def handle_shop_purchase(self, category, subcategory, item_name):
+        result = self.shop_manager.purchase_item(category, subcategory, item_name, self)
+        self.set_current_plot_text(result)
+
+    def draw_shop_screen(self, screen):
+        available_items = self.shop_manager.get_available_items(self.current_shop_category,
+                                                                self.current_shop_subcategory)
+        for i, item in enumerate(available_items):
+            # Отрисовка предметов
+            pass
+
+    def save_game(self):
+        # Автоматическое сохранение состояния магазина при сохранении игры
+        self.shop_manager.save_shop_state()
+
+    def load_game(self):
+        # Автоматическая загрузка состояния магазина при загрузке игры
+        self.shop_manager.load_shop_state()
+    #
 
 
 
@@ -838,20 +901,29 @@ class Game:
 
         return bg, buttons, text_surface
 
-
-    def wrap_text(self, text, max_width, font):
-        """Переносит текст, чтобы он влезал в указанную ширину."""
+    def wrap_text(text, font, max_width):
+        """
+        Разбивает текст на строки, чтобы он помещался в заданную ширину.
+        Args:
+            text (str): Исходный текст.
+            font (pygame.font.Font): Шрифт для расчета размера текста.
+            max_width (int): Максимальная ширина строки.
+        Returns:
+            list: Список строк, разбитых по ширине.
+        """
+        if not isinstance(text, str):
+            text = str(text)  # Преобразуем в строку, если это не строка
         words = text.split(' ')
         lines = []
-        current_line = ""
+        current_line = ''
         for word in words:
-            if font.size(current_line + word + " ")[0] <= max_width:
-                current_line += word + " "
+            test_line = current_line + word + ' '
+            if font.size(test_line)[0] <= max_width:
+                current_line = test_line
             else:
                 lines.append(current_line.strip())
-                current_line = word + " "
-        if current_line:
-            lines.append(current_line.strip())
+                current_line = word + ' '
+        lines.append(current_line.strip())
         return lines
 
 
@@ -1236,6 +1308,117 @@ class WorkManager:
 
         return new_state
 
+
+class ShopManager:
+    def __init__(self):
+        # Инициализация всех предметов магазина
+        self.shop_items = {
+            "Активный заработок": {
+                "Копирайтинг": [
+                    {"name": "Курс по SEO", "price": 500, "desc": "+10% к доходу от копирайтинга", "icon": "seo.png",
+                     "purchased": False},
+                    {"name": "Портфолио", "price": 200, "desc": "+5% к доверию заказчиков", "icon": "portfolio.png",
+                     "purchased": False}
+                ],
+                "Дизайн": [
+                    {"name": "Фigma", "price": 800, "desc": "Обучение Figma +15% к скорости работы",
+                     "icon": "figma.png", "purchased": False},
+                    {"name": "Иллюстратор", "price": 1200, "desc": "+20% к качеству работ", "icon": "illustrator.png",
+                     "purchased": False}
+                ],
+                "Программирование": [
+                    {"name": "Python курс", "price": 1000, "desc": "+20% к доходу от программирования",
+                     "icon": "python.png", "purchased": False},
+                    {"name": "Git", "price": 300, "desc": "+10% к эффективности", "icon": "git.png", "purchased": False}
+                ]
+            },
+            "Пассивный заработок": {
+                "Арбитраж": [
+                    {"name": "Нанять сотрудника", "price": 2500, "desc": "+5% от баланса", "icon": "stocks.png",
+                     "purchased": False},
+                    {"name": "Дроповод", "price": 2000, "desc": "+3% от баланса", "icon": "stocks.png",
+                     "purchased": False},
+                    {"name": "Мерчант Биржи", "price": 10000, "desc": "+10% от баланса", "icon": "stocks.png",
+                     "purchased": False},
+                    {"name": "Обучение связке", "price": 3000, "desc": "+6% от баланса", "icon": "stocks.png",
+                     "purchased": False},
+                    {"name": "Увеличить баланс", "price": 1000, "desc": "+1000 к балансу", "icon": "stocks.png",
+                     "purchased": False}
+                ],
+                "Трейдинг": [
+                    {"name": "Фьючерсы", "price": 2500, "desc": "Высокий риск, возможен ×3", "icon": "futures.png",
+                     "purchased": False},
+                    {"name": "Опционы", "price": 3000, "desc": "Очень высокий риск, возможен ×4", "icon": "options.png",
+                     "purchased": False}
+                ]
+            },
+            "Лотереи": [
+                {"name": "Дешмань", "price": 100, "desc": "от 10 до 300", "icon": "money.png", "purchased": False}
+            ],
+            "Улучшения": [
+                {"name": "Нормальная еда", "price": 100, "desc": "даёт +20 к максимуму энергии", "icon": "food.png",
+                 "purchased": False}
+            ]
+        }
+
+        # Загрузка состояния из файла при инициализации
+        self.load_shop_state()
+
+    def purchase_item(self, category, subcategory, item_name, game):
+        """Метод для покупки предмета"""
+        if subcategory:
+            items = self.shop_items[category][subcategory]
+        else:
+            items = self.shop_items[category]
+
+        for item in items:
+            if item["name"] == item_name and not item["purchased"]:
+                if game.money >= item["price"]:
+                    game.money -= item["price"]
+                    item["purchased"] = True
+                    self.save_shop_state()
+                    return f"Вы успешно купили {item_name}!"
+                else:
+                    return "Недостаточно денег!"
+        return "Предмет не найден или уже куплен!"
+
+    def save_shop_state(self):
+        """Сохраняет состояние магазина в файл"""
+        try:
+            with open("shop_state.json", "w") as f:
+                json.dump(self.shop_items, f)
+        except Exception as e:
+            print(f"Ошибка при сохранении состояния магазина: {e}")
+
+    def load_shop_state(self):
+        """Загружает состояние магазина из файла"""
+        try:
+            with open("shop_state.json", "r") as f:
+                loaded_data = json.load(f)
+                # Обновляем только состояние purchased, сохраняя оригинальные данные
+                self.update_purchased_status(self.shop_items, loaded_data)
+        except FileNotFoundError:
+            print("Файл состояния магазина не найден. Используются начальные настройки.")
+        except Exception as e:
+            print(f"Ошибка при загрузке состояния магазина: {e}")
+
+    def update_purchased_status(self, original, loaded):
+        """Рекурсивно обновляет статус purchased"""
+        for key, value in original.items():
+            if isinstance(value, list):
+                for i, item in enumerate(value):
+                    if item["name"] == loaded[key][i]["name"]:
+                        item["purchased"] = loaded[key][i].get("purchased", False)
+            elif isinstance(value, dict):
+                self.update_purchased_status(value, loaded[key])
+
+    def get_available_items(self, category, subcategory=None):
+        """Возвращает доступные для покупки предметы"""
+        if subcategory:
+            return [item for item in self.shop_items[category][subcategory] if not item["purchased"]]
+        else:
+            return [item for item in self.shop_items[category] if not item["purchased"]]
+
 def apply_display_mode(resolution, mode):
     """
     Применяет выбранный режим отображения.
@@ -1479,10 +1662,7 @@ def handle_mouse_events(mouse_pos, state, game, current_plot_text, settings_butt
 
 
 def draw_shop_screen(screen, game, current_width):
-    """
-    Отрисовывает экран магазина.
-    """
-    # Задаём фон
+    """Отрисовывает экран магазина."""
     screen.fill((30, 30, 60))
 
     # Отрисовка категорий
@@ -1493,6 +1673,8 @@ def draw_shop_screen(screen, game, current_width):
     button_spacing = 20
 
     category_buttons = []
+    buy_buttons = []  # Новый список для кнопок покупки
+
     for category in game.shop_items.keys():
         color = GREEN if category == game.current_shop_category else BLUE
         button = Button(category_x, category_y, button_width, button_height, category, color, WHITE)
@@ -1500,75 +1682,88 @@ def draw_shop_screen(screen, game, current_width):
         category_buttons.append(button)
         category_x += button_width + button_spacing
 
-    # Отрисовка подкатегорий
-    subcategory_buttons = []
-    if game.current_shop_category in game.shop_items:
-        items = game.shop_items[game.current_shop_category]
-        if isinstance(items, dict):
-            subcategory_x = 50
-            subcategory_y = 100
-            for subcategory in items.keys():
-                color = GREEN if subcategory == game.current_shop_subcategory else BLUE
-                button = Button(subcategory_x, subcategory_y, button_width, button_height,
-                                subcategory, color, WHITE)
-                button.draw(screen)
-                subcategory_buttons.append(button)
-                subcategory_x += button_width + button_spacing
-
-    # Отрисовка товаров
+    # Отрисовка подкатегорий и товаров
     items_start_y = 200
     current_items = []
 
     if game.current_shop_category in game.shop_items:
         items = game.shop_items[game.current_shop_category]
-        if game.current_shop_subcategory and isinstance(items, dict):
-            current_items = items[game.current_shop_subcategory]
+
+        if isinstance(items, dict) and game.current_shop_subcategory:
+            current_items = items.get(game.current_shop_subcategory, [])
         elif isinstance(items, list):
             current_items = items
 
     for i, item in enumerate(current_items):
         if isinstance(item, dict):
-            text = f"{item['name']} — {item['desc']}"
-            price = f"${item['price']}"
-
-            # Отрисовка фона элемента
-            item_rect = pygame.Rect(50, items_start_y + (i * 40), current_width - 200, 35)
+            # Отрисовка товара
+            item_rect = pygame.Rect(50, items_start_y + (i * 80), current_width - 300, 70)
             pygame.draw.rect(screen, (50, 50, 80), item_rect)
 
-            # Отрисовка текста
-            text_surface = SMALL_FONT.render(text, True, WHITE)
-            price_surface = SMALL_FONT.render(price, True, YELLOW)
+            # Название товара
+            name_text = SMALL_FONT.render(item.get('name', "Без имени"), True, WHITE)
+            screen.blit(name_text, (60, items_start_y + (i * 80) + 5))
 
-            screen.blit(text_surface, (60, items_start_y + (i * 40) + 10))
-            screen.blit(price_surface, (current_width - 150, items_start_y + (i * 40) + 10))
+            # Описание товара
+            if 'desc' in item and isinstance(item['desc'], str):
+                wrapped_desc = wrap_text(item['desc'], TINY_FONT, current_width - 300)
+                y_offset = 0
+                for line in wrapped_desc:
+                    desc_text = TINY_FONT.render(line, True, (200, 200, 200))
+                    screen.blit(desc_text, (60, items_start_y + (i * 80) + 25 + y_offset))
+                    y_offset += TINY_FONT.get_height() + 5
+            else:
+                desc_text = TINY_FONT.render("Описание отсутствует", True, (200, 200, 200))
+                screen.blit(desc_text, (60, items_start_y + (i * 80) + 25))
 
-    # Кнопка выхода
+            # Цена товара
+            price_text = SMALL_FONT.render(f"${item.get('price', 0)}", True, YELLOW)
+            screen.blit(price_text, (current_width - 250, items_start_y + (i * 80) + 25))
+
+            # Кнопка покупки
+            buy_button_x = current_width - 180
+            buy_button_y = items_start_y + (i * 80) + 15
+            buy_button_width = 150
+            buy_button_height = 40
+
+            buy_button = BuyButton(
+                buy_button_x,
+                buy_button_y,
+                buy_button_width,
+                buy_button_height,
+                "Купить" if not item.get("purchased", False) else "Куплено",
+                GREEN if not item.get("purchased", False) else GRAY,
+                WHITE,
+                item,
+                game
+            )
+            buy_button.draw(screen)
+            buy_buttons.append(buy_button)
+
     exit_button = Button(current_width - 150, 20, 100, 50, "Выход", RED, WHITE)
     exit_button.draw(screen)
 
-    return category_buttons, subcategory_buttons, exit_button
+    return category_buttons, buy_buttons, exit_button
 
 
-def handle_shop_events(mouse_pos, game, category_buttons, subcategory_buttons, exit_button):
-    # Проверяем нажатие на кнопку выхода
+def handle_shop_events(mouse_pos, game, category_buttons, buy_buttons, exit_button):
+    """Обрабатывает события в магазине"""
+    # Проверка нажатия на кнопку выхода
     if exit_button.is_clicked(mouse_pos):
         return "game"
 
-    # Проверяем нажатие на категории
+    # Проверка нажатия на категории
     for i, button in enumerate(category_buttons):
         if button.is_clicked(mouse_pos):
             game.current_shop_category = list(game.shop_items.keys())[i]
             game.current_shop_subcategory = None
             return None
 
-    # Проверяем нажатие на подкатегории
-    if game.current_shop_category in game.shop_items:
-        items = game.shop_items[game.current_shop_category]
-        if isinstance(items, dict):
-            for i, button in enumerate(subcategory_buttons):
-                if button.is_clicked(mouse_pos):
-                    game.current_shop_subcategory = list(items.keys())[i]
-                    return None
+    # Проверка нажатия на кнопки покупки
+    for buy_button in buy_buttons:
+        if buy_button.is_clicked(mouse_pos):
+            result = buy_button.handle_click()
+            return result
 
     return None
 
@@ -2411,6 +2606,21 @@ def main():
             game.update_button_positions((current_width, current_height))
             for button in game.buttons.values():
                 button.update(mouse_pos)
+
+
+        '''Интеграция состояния в основной игровой цикл'''
+        if state == "shop":
+            category_buttons, buy_buttons, exit_button = draw_shop_screen(screen, game, current_width)
+
+            for event in pygame.event.get():
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    mouse_pos = pygame.mouse.get_pos()
+                    result = handle_shop_events(mouse_pos, game, category_buttons, buy_buttons, exit_button)
+                    if result:
+                        if result == "game":
+                            state = "game"
+                        else:
+                            current_plot_text = result
 
         if game.current_plot_text is not None:
             current_time = pygame.time.get_ticks()
