@@ -347,25 +347,6 @@ class Button:
             self.current_color = self.default_color
 
 
-'''класс для кнопок покупки в магазине'''
-class BuyButton(Button):
-    def handle_click(self):
-        """Обработка нажатия на кнопку покупки"""
-        if self.game.money >= self.item["price"]:
-            self.game.money -= self.item["price"]
-            self.item["purchased"] = True
-
-            # Проверяем существование метода
-            if hasattr(self.game, 'save_shop_state') and callable(getattr(self.game, 'save_shop_state')):
-                self.game.save_shop_state()
-            else:
-                print("Метод save_shop_state не найден!")
-
-            return f"Вы успешно купили {self.item['name']}!"
-        else:
-            return "Недостаточно денег!"
-
-
 class GradientButton(Button):
     """
     Кнопка с градиентом прозрачности: центр менее прозрачный, края более.
@@ -497,7 +478,7 @@ class Game:
         self.is_summer3_been = False
         self.work_manager = WorkManager(pygame.display.get_surface().get_size())
 
-        self.shop_manager = ShopManager()
+        self.purchased_items = set()  # Сет для хранения купленных предметов
 
 
         screen_size = pygame.display.get_surface().get_size()
@@ -563,9 +544,6 @@ class Game:
                     {"name": "Опционы", "price": 3000, "desc": "Очень высокий риск, возможен ×4", "icon": "options.png"}
                 ]
             },
-            "Лотереи": [
-                {"name": "Дешмань", "price": 100, "desc": "от 10 до 300", "icon": "money.png"},
-            ],
             "Улучшения": [
                 {"name": "Нормальная еда", "price": 100, "desc": "даёт +20 к максимуму энергии", "icon": "food.png"},
             ]
@@ -584,52 +562,10 @@ class Game:
         ]
         self.update_button_positions(pygame.display.get_surface().get_size())
 
-    #магазин
+
     def update_screen_size(self):
         self.screen_size = pygame.display.get_surface().get_size()
 
-    def save_shop_state(self):
-        """Сохраняет состояние магазина"""
-        try:
-            shop_data = {}
-            for category, items in self.shop_items.items():
-                if isinstance(items, dict):
-                    shop_data[category] = {}
-                    for subcat, subitems in items.items():
-                        shop_data[category][subcat] = [
-                            {"name": i["name"], "purchased": i.get("purchased", False)}
-                            for i in subitems
-                        ]
-                else:
-                    shop_data[category] = [
-                        {"name": i["name"], "purchased": i.get("purchased", False)}
-                        for i in items
-                    ]
-
-            with open("shop_state.json", "w") as f:
-                json.dump(shop_data, f)
-        except Exception as e:
-            print(f"Ошибка сохранения состояния магазина: {e}")
-
-    def handle_shop_purchase(self, category, subcategory, item_name):
-        result = self.shop_manager.purchase_item(category, subcategory, item_name, self)
-        self.set_current_plot_text(result)
-
-    def draw_shop_screen(self, screen):
-        available_items = self.shop_manager.get_available_items(self.current_shop_category,
-                                                                self.current_shop_subcategory)
-        for i, item in enumerate(available_items):
-            # Отрисовка предметов
-            pass
-
-    def save_game(self):
-        # Автоматическое сохранение состояния магазина при сохранении игры
-        self.shop_manager.save_shop_state()
-
-    def load_game(self):
-        # Автоматическая загрузка состояния магазина при загрузке игры
-        self.shop_manager.load_shop_state()
-    #
 
 
 
@@ -901,29 +837,20 @@ class Game:
 
         return bg, buttons, text_surface
 
-    def wrap_text(text, font, max_width):
-        """
-        Разбивает текст на строки, чтобы он помещался в заданную ширину.
-        Args:
-            text (str): Исходный текст.
-            font (pygame.font.Font): Шрифт для расчета размера текста.
-            max_width (int): Максимальная ширина строки.
-        Returns:
-            list: Список строк, разбитых по ширине.
-        """
-        if not isinstance(text, str):
-            text = str(text)  # Преобразуем в строку, если это не строка
+
+    def wrap_text(self, text, max_width, font):
+        """Переносит текст, чтобы он влезал в указанную ширину."""
         words = text.split(' ')
         lines = []
-        current_line = ''
+        current_line = ""
         for word in words:
-            test_line = current_line + word + ' '
-            if font.size(test_line)[0] <= max_width:
-                current_line = test_line
+            if font.size(current_line + word + " ")[0] <= max_width:
+                current_line += word + " "
             else:
                 lines.append(current_line.strip())
-                current_line = word + ' '
-        lines.append(current_line.strip())
+                current_line = word + " "
+        if current_line:
+            lines.append(current_line.strip())
         return lines
 
 
@@ -1069,11 +996,8 @@ class Game:
             self.set_current_plot_text("Недостаточно денег для участия в лотерее.")
             return "Недостаточно денег для участия в лотерее."
 
-
     def save_game(self):
-        """
-    Сохраняет текущее состояние игры в файл.
-    """
+        """Сохраняет текущее состояние игры в файл."""
         data = {
             "money": self.money,
             "energy": self.energy,
@@ -1092,31 +1016,7 @@ class Game:
             "monthly_study_progress": self.monthly_study_progress,
             "monthly_money_history": self.monthly_money_history,
             "monthly_study_history": self.monthly_study_history,
-            "monthly_start_money": self.monthly_start_money,
-            "monthly_start_karma": self.monthly_start_karma,
-            "monthly_start_study_progress": self.monthly_start_study_progress,
-            "failed_exam": self.failed_exam,
-            "illegal_activity_score": self.illegal_activity_score,
-            "last_scholarship_amount": self.last_scholarship_amount,
-            "s_money": self.s_money,
-            "s_karma": self.s_karma,
-            "s_study_progress": self.s_study_progress,
-            "max_energy": self.max_energy,
-            "mining_income": self.mining_income,
-            "work_income": self.work_income,
-            "scholarship": self.scholarship,
-            "rent_paid": self.rent_paid,
-            "rent_cost": self.rent_cost,
-            "housing_bonus": self.housing_bonus,
-            "expensive_item_goal": self.expensive_item_goal,
-            "current_item_savings": self.current_item_savings,
-            "daily_expenses": self.daily_expenses,
-            "daily_expense_buff": self.daily_expense_buff,
-            "endurance": self.endurance,
-            "startup_participated": self.startup_participated,
-            "gym_participated": self.gym_participated,
-            "startup_phase": self.startup_phase,
-            "startup_started": self.startup_started,
+            "current_month_day": self.current_month_day,
             "sport_endurance_bonus": self.sport_endurance_bonus,
             "plot_events": self.plot_events,
             "current_plot_text": self.current_plot_text,
@@ -1128,20 +1028,22 @@ class Game:
             "is_summer1_been": self.is_summer1_been,
             "is_summer2_been": self.is_summer2_been,
             "is_summer3_been": self.is_summer3_been,
-            "current_month_day": self.current_month_day
+
+            # Добавляем сохранение купленных предметов
+            "purchased_items": list(self.purchased_items)
         }
+
         with open("save.json", "w") as f:
             json.dump(data, f)
 
-
     def load_game(self):
-        """
-    Загружает сохраненное состояние игры из файла.
-    В случае отсутствия файла создает новую игру.
-    """
+        """Загружает сохраненное состояние игры из файла.
+        В случае отсутствия файла создает новую игру."""
         try:
             with open("save.json", "r") as f:
                 data = json.load(f)
+
+                # Загрузка основных параметров игры
                 self.money = data.get("money", 100)
                 self.energy = data.get("energy", 100)
                 self.total_days = data.get("total_days", 1)
@@ -1150,52 +1052,32 @@ class Game:
                 self.lab_completed = data.get("lab_completed", False)
                 self.study_score = data.get("study_score", 0)
                 self.knowledge_check_passed = data.get("knowledge_check_passed", False)
+                self.start_money = data.get("start_money", 0)
+                self.start_karma = data.get("start_karma", 0)
+                self.start_study_progress = data.get("start_study_progress", 0.0)
                 self.current_season_index = data.get("current_season_index", 0)
-                self.start_money = data.get("start_money", self.money)
-                self.start_karma = data.get("start_karma", self.karma)
-                self.start_study_progress = data.get("start_study_progress", self.study_progress)
                 self.monthly_money_change = data.get("monthly_money_change", 0)
                 self.monthly_karma_change = data.get("monthly_karma_change", 0)
                 self.monthly_study_progress = data.get("monthly_study_progress", 0.0)
                 self.monthly_money_history = data.get("monthly_money_history", [])
                 self.monthly_study_history = data.get("monthly_study_history", [])
-                self.monthly_start_money = data.get("monthly_start_money", self.money)
-                self.monthly_start_karma = data.get("monthly_start_karma", self.karma)
-                self.monthly_start_study_progress = data.get("monthly_start_study_progress", self.study_progress)
                 self.current_month_day = data.get("current_month_day", 0)
-                self.failed_exam = data.get("failed_exam", False)
-                self.illegal_activity_score = data.get("illegal_activity_score", 0)
-                self.last_scholarship_amount = data.get("last_scholarship_amount", None)
-                self.s_money = data.get("s_money", 0)
-                self.s_karma = data.get("s_karma", 0)
-                self.s_study_progress = data.get("s_study_progress", 0)
-                self.max_energy = data.get("max_energy", 3000)
-                self.mining_income = data.get("mining_income", 10)
-                self.work_income = data.get("work_income", 20)
-                self.scholarship = data.get("scholarship", 1000)
-                self.rent_paid = data.get("rent_paid", True)
-                self.rent_cost = data.get("rent_cost", 100)
-                self.housing_bonus = data.get("housing_bonus", 0)
-                self.expensive_item_goal = data.get("expensive_item_goal", 5000)
-                self.current_item_savings = data.get("current_item_savings", 0)
-                self.daily_expenses = data.get("daily_expenses", 10)
-                self.daily_expense_buff = data.get("daily_expense_buff", 0)
-                self.endurance = data.get("endurance", 100)
-                self.startup_participated = data.get("startup_participated", False)
-                self.gym_participated = data.get("gym_participated", False)
-                self.startup_phase = data.get("startup_phase", 0)
-                self.startup_started = data.get("startup_started", False)
                 self.sport_endurance_bonus = data.get("sport_endurance_bonus", 0)
                 self.plot_events = data.get("plot_events", [])
                 self.current_plot_text = data.get("current_plot_text", None)
                 self.message_timer = data.get("message_timer", 0)
-                self.used_events = set(data.get("used_events", []))  # Преобразуем список обратно во множество
+                self.used_events = set(data.get("used_events", []))
                 self.event_day = data.get("event_day", 0)
                 self.max_event_days = data.get("max_event_days", 5)
                 self.military_ID = data.get("military_ID", False)
                 self.is_summer1_been = data.get("is_summer1_been", False)
                 self.is_summer2_been = data.get("is_summer2_been", False)
                 self.is_summer3_been = data.get("is_summer3_been", False)
+
+                # Загрузка купленных предметов
+                self.purchased_items = set(data.get("purchased_items", []))
+
+
         except FileNotFoundError:
             print("Сохранение не найдено. Начинаем новую игру.")
 
@@ -1307,117 +1189,6 @@ class WorkManager:
                 new_state = "game"
 
         return new_state
-
-
-class ShopManager:
-    def __init__(self):
-        # Инициализация всех предметов магазина
-        self.shop_items = {
-            "Активный заработок": {
-                "Копирайтинг": [
-                    {"name": "Курс по SEO", "price": 500, "desc": "+10% к доходу от копирайтинга", "icon": "seo.png",
-                     "purchased": False},
-                    {"name": "Портфолио", "price": 200, "desc": "+5% к доверию заказчиков", "icon": "portfolio.png",
-                     "purchased": False}
-                ],
-                "Дизайн": [
-                    {"name": "Фigma", "price": 800, "desc": "Обучение Figma +15% к скорости работы",
-                     "icon": "figma.png", "purchased": False},
-                    {"name": "Иллюстратор", "price": 1200, "desc": "+20% к качеству работ", "icon": "illustrator.png",
-                     "purchased": False}
-                ],
-                "Программирование": [
-                    {"name": "Python курс", "price": 1000, "desc": "+20% к доходу от программирования",
-                     "icon": "python.png", "purchased": False},
-                    {"name": "Git", "price": 300, "desc": "+10% к эффективности", "icon": "git.png", "purchased": False}
-                ]
-            },
-            "Пассивный заработок": {
-                "Арбитраж": [
-                    {"name": "Нанять сотрудника", "price": 2500, "desc": "+5% от баланса", "icon": "stocks.png",
-                     "purchased": False},
-                    {"name": "Дроповод", "price": 2000, "desc": "+3% от баланса", "icon": "stocks.png",
-                     "purchased": False},
-                    {"name": "Мерчант Биржи", "price": 10000, "desc": "+10% от баланса", "icon": "stocks.png",
-                     "purchased": False},
-                    {"name": "Обучение связке", "price": 3000, "desc": "+6% от баланса", "icon": "stocks.png",
-                     "purchased": False},
-                    {"name": "Увеличить баланс", "price": 1000, "desc": "+1000 к балансу", "icon": "stocks.png",
-                     "purchased": False}
-                ],
-                "Трейдинг": [
-                    {"name": "Фьючерсы", "price": 2500, "desc": "Высокий риск, возможен ×3", "icon": "futures.png",
-                     "purchased": False},
-                    {"name": "Опционы", "price": 3000, "desc": "Очень высокий риск, возможен ×4", "icon": "options.png",
-                     "purchased": False}
-                ]
-            },
-            "Лотереи": [
-                {"name": "Дешмань", "price": 100, "desc": "от 10 до 300", "icon": "money.png", "purchased": False}
-            ],
-            "Улучшения": [
-                {"name": "Нормальная еда", "price": 100, "desc": "даёт +20 к максимуму энергии", "icon": "food.png",
-                 "purchased": False}
-            ]
-        }
-
-        # Загрузка состояния из файла при инициализации
-        self.load_shop_state()
-
-    def purchase_item(self, category, subcategory, item_name, game):
-        """Метод для покупки предмета"""
-        if subcategory:
-            items = self.shop_items[category][subcategory]
-        else:
-            items = self.shop_items[category]
-
-        for item in items:
-            if item["name"] == item_name and not item["purchased"]:
-                if game.money >= item["price"]:
-                    game.money -= item["price"]
-                    item["purchased"] = True
-                    self.save_shop_state()
-                    return f"Вы успешно купили {item_name}!"
-                else:
-                    return "Недостаточно денег!"
-        return "Предмет не найден или уже куплен!"
-
-    def save_shop_state(self):
-        """Сохраняет состояние магазина в файл"""
-        try:
-            with open("shop_state.json", "w") as f:
-                json.dump(self.shop_items, f)
-        except Exception as e:
-            print(f"Ошибка при сохранении состояния магазина: {e}")
-
-    def load_shop_state(self):
-        """Загружает состояние магазина из файла"""
-        try:
-            with open("shop_state.json", "r") as f:
-                loaded_data = json.load(f)
-                # Обновляем только состояние purchased, сохраняя оригинальные данные
-                self.update_purchased_status(self.shop_items, loaded_data)
-        except FileNotFoundError:
-            print("Файл состояния магазина не найден. Используются начальные настройки.")
-        except Exception as e:
-            print(f"Ошибка при загрузке состояния магазина: {e}")
-
-    def update_purchased_status(self, original, loaded):
-        """Рекурсивно обновляет статус purchased"""
-        for key, value in original.items():
-            if isinstance(value, list):
-                for i, item in enumerate(value):
-                    if item["name"] == loaded[key][i]["name"]:
-                        item["purchased"] = loaded[key][i].get("purchased", False)
-            elif isinstance(value, dict):
-                self.update_purchased_status(value, loaded[key])
-
-    def get_available_items(self, category, subcategory=None):
-        """Возвращает доступные для покупки предметы"""
-        if subcategory:
-            return [item for item in self.shop_items[category][subcategory] if not item["purchased"]]
-        else:
-            return [item for item in self.shop_items[category] if not item["purchased"]]
 
 def apply_display_mode(resolution, mode):
     """
@@ -1662,10 +1433,8 @@ def handle_mouse_events(mouse_pos, state, game, current_plot_text, settings_butt
 
 
 def draw_shop_screen(screen, game, current_width):
-    """Отрисовывает экран магазина."""
     screen.fill((30, 30, 60))
 
-    # Отрисовка категорий
     category_x = 50
     category_y = 20
     button_width = 200
@@ -1673,98 +1442,116 @@ def draw_shop_screen(screen, game, current_width):
     button_spacing = 20
 
     category_buttons = []
-    buy_buttons = []  # Новый список для кнопок покупки
+    subcategory_buttons = []
 
+    # Отрисовка категорий
     for category in game.shop_items.keys():
         color = GREEN if category == game.current_shop_category else BLUE
-        button = Button(category_x, category_y, button_width, button_height, category, color, WHITE)
+        button = Button(category_x, category_y, button_width, button_height,
+                        category, color, WHITE)
         button.draw(screen)
         category_buttons.append(button)
         category_x += button_width + button_spacing
 
-    # Отрисовка подкатегорий и товаров
-    items_start_y = 200
-    current_items = []
-
+    # Отрисовка подкатегорий
     if game.current_shop_category in game.shop_items:
         items = game.shop_items[game.current_shop_category]
+        if isinstance(items, dict):
+            subcategory_x = 50
+            subcategory_y = 100
+            for subcategory in items.keys():
+                color = GREEN if subcategory == game.current_shop_subcategory else BLUE
+                button = Button(subcategory_x, subcategory_y, button_width,
+                                button_height, subcategory, color, WHITE)
+                button.draw(screen)
+                subcategory_buttons.append(button)
+                subcategory_x += button_width + button_spacing
 
-        if isinstance(items, dict) and game.current_shop_subcategory:
-            current_items = items.get(game.current_shop_subcategory, [])
+    # Отрисовка товаров
+    items_start_y = 200
+    current_items = []
+    if game.current_shop_category in game.shop_items:
+        items = game.shop_items[game.current_shop_category]
+        if game.current_shop_subcategory and isinstance(items, dict):
+            current_items = items[game.current_shop_subcategory]
         elif isinstance(items, list):
             current_items = items
 
     for i, item in enumerate(current_items):
-        if isinstance(item, dict):
-            # Отрисовка товара
-            item_rect = pygame.Rect(50, items_start_y + (i * 80), current_width - 300, 70)
-            pygame.draw.rect(screen, (50, 50, 80), item_rect)
+        item_rect = pygame.Rect(50, items_start_y + (i * 40),
+                                current_width - 200, 40)
+        pygame.draw.rect(screen, (50, 50, 80), item_rect)
 
-            # Название товара
-            name_text = SMALL_FONT.render(item.get('name', "Без имени"), True, WHITE)
-            screen.blit(name_text, (60, items_start_y + (i * 80) + 5))
+        text_surface = SMALL_FONT.render(item['name'], True, WHITE)
+        price_surface = SMALL_FONT.render(f"${item['price']}", True, YELLOW)
 
-            # Описание товара
-            if 'desc' in item and isinstance(item['desc'], str):
-                wrapped_desc = wrap_text(item['desc'], TINY_FONT, current_width - 300)
-                y_offset = 0
-                for line in wrapped_desc:
-                    desc_text = TINY_FONT.render(line, True, (200, 200, 200))
-                    screen.blit(desc_text, (60, items_start_y + (i * 80) + 25 + y_offset))
-                    y_offset += TINY_FONT.get_height() + 5
-            else:
-                desc_text = TINY_FONT.render("Описание отсутствует", True, (200, 200, 200))
-                screen.blit(desc_text, (60, items_start_y + (i * 80) + 25))
-
-            # Цена товара
-            price_text = SMALL_FONT.render(f"${item.get('price', 0)}", True, YELLOW)
-            screen.blit(price_text, (current_width - 250, items_start_y + (i * 80) + 25))
-
-            # Кнопка покупки
-            buy_button_x = current_width - 180
-            buy_button_y = items_start_y + (i * 80) + 15
-            buy_button_width = 150
-            buy_button_height = 40
-
-            buy_button = BuyButton(
-                buy_button_x,
-                buy_button_y,
-                buy_button_width,
-                buy_button_height,
-                "Купить" if not item.get("purchased", False) else "Куплено",
-                GREEN if not item.get("purchased", False) else GRAY,
-                WHITE,
-                item,
-                game
-            )
+        if item['name'] in game.purchased_items:
+            purchased_text = SMALL_FONT.render("КУПЛЕНО", True, GREEN)
+            screen.blit(purchased_text, (item_rect.x + 10, item_rect.y + 5))
+        else:
+            buy_button = Button(item_rect.x + item_rect.width - 100,
+                                item_rect.y + 5, 80, 30, "Купить", GREEN, WHITE)
             buy_button.draw(screen)
-            buy_buttons.append(buy_button)
+
+        screen.blit(text_surface, (item_rect.x + 10, item_rect.y + 5))
+        screen.blit(price_surface, (item_rect.x + item_rect.width - 120,
+                                    item_rect.y + 5))
 
     exit_button = Button(current_width - 150, 20, 100, 50, "Выход", RED, WHITE)
     exit_button.draw(screen)
 
-    return category_buttons, buy_buttons, exit_button
+    return category_buttons, subcategory_buttons, exit_button
 
 
-def handle_shop_events(mouse_pos, game, category_buttons, buy_buttons, exit_button):
-    """Обрабатывает события в магазине"""
-    # Проверка нажатия на кнопку выхода
+def handle_shop_events(mouse_pos, game, category_buttons,
+                       subcategory_buttons, exit_button):
+    # Обработка кнопки выхода
     if exit_button.is_clicked(mouse_pos):
         return "game"
 
-    # Проверка нажатия на категории
+    # Обработка категорий
     for i, button in enumerate(category_buttons):
         if button.is_clicked(mouse_pos):
-            game.current_shop_category = list(game.shop_items.keys())[i]
+            categories = list(game.shop_items.keys())
+            game.current_shop_category = categories[i]
             game.current_shop_subcategory = None
             return None
 
-    # Проверка нажатия на кнопки покупки
-    for buy_button in buy_buttons:
-        if buy_button.is_clicked(mouse_pos):
-            result = buy_button.handle_click()
-            return result
+    # Обработка подкатегорий
+    if game.current_shop_category in game.shop_items:
+        items = game.shop_items[game.current_shop_category]
+        if isinstance(items, dict):
+            for i, button in enumerate(subcategory_buttons):
+                if button.is_clicked(mouse_pos):
+                    subcategories = list(items.keys())
+                    game.current_shop_subcategory = subcategories[i]
+                    return None
 
+    # Обработка покупок
+    if game.current_shop_category in game.shop_items:
+        items = game.shop_items[game.current_shop_category]
+        current_items = []
+
+        if game.current_shop_subcategory and isinstance(items, dict):
+            current_items = items[game.current_shop_subcategory]
+        elif isinstance(items, list):
+            current_items = items
+
+        for i, item in enumerate(current_items):
+            item_rect = pygame.Rect(50, 200 + (i * 40),
+                                    game.screen_size[0] - 200, 40)
+            buy_button_rect = pygame.Rect(item_rect.x + item_rect.width - 100,
+                                          item_rect.y + 5, 80, 30)
+
+            if buy_button_rect.collidepoint(mouse_pos) and \
+                    item['name'] not in game.purchased_items:
+                if game.money >= item["price"]:
+                    game.money -= item["price"]
+                    game.purchased_items.add(item['name'])
+                    game.save_game()  # Сохраняем изменения
+                    return None
+                else:
+                    return None
     return None
 
 
@@ -2606,21 +2393,6 @@ def main():
             game.update_button_positions((current_width, current_height))
             for button in game.buttons.values():
                 button.update(mouse_pos)
-
-
-        '''Интеграция состояния в основной игровой цикл'''
-        if state == "shop":
-            category_buttons, buy_buttons, exit_button = draw_shop_screen(screen, game, current_width)
-
-            for event in pygame.event.get():
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    mouse_pos = pygame.mouse.get_pos()
-                    result = handle_shop_events(mouse_pos, game, category_buttons, buy_buttons, exit_button)
-                    if result:
-                        if result == "game":
-                            state = "game"
-                        else:
-                            current_plot_text = result
 
         if game.current_plot_text is not None:
             current_time = pygame.time.get_ticks()
