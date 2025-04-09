@@ -1606,6 +1606,8 @@ def handle_mouse_events(mouse_pos, state, game, current_plot_text, settings_butt
 def draw_shop_screen(screen, game, current_width):
     screen.fill((30, 30, 60))
 
+    screen_size = pygame.display.get_surface().get_size()
+
     category_x = 50
     category_y = 20
     button_width = 200
@@ -1658,14 +1660,14 @@ def draw_shop_screen(screen, game, current_width):
 
         if item['name'] in game.purchased_items:
             purchased_text = SMALL_FONT.render("КУПЛЕНО", True, GREEN)
-            screen.blit(purchased_text, (item_rect.x + 10, item_rect.y + 5))
+            screen.blit(purchased_text, (item_rect.x + item_rect.width - 100, item_rect.y + 5))
         else:
             buy_button = Button(item_rect.x + item_rect.width - 100,
                                 item_rect.y + 5, 80, 30, "Купить", GREEN, WHITE)
             buy_button.draw(screen)
 
         screen.blit(text_surface, (item_rect.x + 10, item_rect.y + 5))
-        screen.blit(price_surface, (item_rect.x + item_rect.width - 120,
+        screen.blit(price_surface, (item_rect.x + item_rect.width - screen_size[0] / 10,
                                     item_rect.y + 5))
 
     exit_button = Button(current_width - 150, 20, 100, 50, "Выход", RED, WHITE)
@@ -1719,7 +1721,6 @@ def handle_shop_events(mouse_pos, game, category_buttons,
                 if game.money >= item["price"]:
                     game.money -= item["price"]
                     game.purchased_items.add(item['name'])
-                    game.save_game()  # Сохраняем изменения
                     return None
                 else:
                     return None
