@@ -540,8 +540,8 @@ class Game:
                     {"name": "Мерчант Площадки", "price": 10000, "desc": "+5% от баланса", "icon": "stocks.png"}
                 ],
                 "Трейдинг": [
-                    {"name": "Фьючерсы", "price": 2500, "desc": "Высокий риск, возможен ×3", "icon": "futures.png"},
-                    {"name": "Опционы", "price": 3000, "desc": "Очень высокий риск, возможен ×4", "icon": "options.png"}
+                    {"name": "Курс 'Понятие рынка'", "price": 2500, "desc": "Высокий риск, возможен ×3", "icon": "futures.png"},
+                    {"name": "Курс 'межбиржевое влияние'", "price": 3000, "desc": "Очень высокий риск, возможен ×4", "icon": "options.png"},
                 ]
             },
             "Улучшения": [
@@ -1089,9 +1089,10 @@ class Game:
 class WorkManager:
     def __init__(self, screen_size):
         self.screen_size = screen_size
-        self.work_categories = ["Курьерство", "Фриланс", "Трейдинг", "P2P", "Скам"]
+        self.work_categories = ["Курьерство", "Фриланс", "Трейдинг", "P2P"]
         self.current_category = "Курьерство"
         self.selected_order = None
+
 
         # Новая структура данных для заказов
         self.orders = {
@@ -1114,15 +1115,76 @@ class WorkManager:
                 {"name": "Обмен валют", "desc": "Наличные/Безнал", "salary": 800},
                 {"name": "Гарант сервис", "desc": "Обеспечение сделки", "salary": 1200},
                 {"name": "Кредитование", "desc": "Микрозаймы", "salary": 1500}
-            ],
-            "Скам": [
-                {"name": "Фишинг", "desc": "Рискованно", "salary": 3000},
-                {"name": "Понизить репутацию", "desc": "Опасно", "salary": 5000},
-                {"name": "Закрыть доступ", "desc": "Критический риск", "salary": 10000}
             ]
         }
 
+    def draw_p2p_screen(self, screen, game, current_width):
+        required_items = [
+            "Нанять сотрудника",
+            "Дроповод",
+            "Мерчант Биржи",
+            "Обучение связке",
+            "Увеличить баланс",
+            "Телефон"
+        ]
+
+        missing_items = [item for item in required_items if item not in game.purchased_items]
+
+        if missing_items:
+            # Отображение окна с просьбой приобрести недостающие предметы
+            overlay = pygame.Surface((current_width, screen.get_height()))
+            overlay.fill((0, 0, 0))
+            overlay.set_alpha(128)
+            screen.blit(overlay, (0, 0))
+
+            message = "Для работы в P2P необходимо приобрести:"
+            text_surface = MAIN_FONT.render(message, True, WHITE)
+            screen.blit(text_surface, (current_width // 2 - text_surface.get_width() // 2, 200))
+
+            y_offset = 250
+            for item in missing_items:
+                item_text = SMALL_FONT.render(f"- {item}", True, YELLOW)
+                screen.blit(item_text, (current_width // 2 - item_text.get_width() // 2, y_offset))
+                y_offset += 30
+
+            shop_button = Button(current_width // 2 - 100, y_offset + 20,
+                                 200, 50, "Перейти в магазин", GREEN, WHITE)
+            shop_button.draw(screen)
+
+            exit_button = Button(current_width - 150, 20, 100, 50, "Выход", RED, WHITE)
+            exit_button.draw(screen)
+
+            return [], shop_button, exit_button
+
+        else:
+            # Отображение заказов для P2P
+            orders = self.orders["P2P"]
+            order_buttons = []
+            for i, order in enumerate(orders):
+                order_rect = pygame.Rect(50, 50 + i * 100, current_width - 100, 90)
+                pygame.draw.rect(screen, (50, 80, 50), order_rect)
+
+                name_text = f"{order['name']} — {order['desc']}"
+                salary_text = f"Оплата: ${order['salary']}"
+
+                name_surface = SMALL_FONT.render(name_text, True, WHITE)
+                salary_surface = SMALL_FONT.render(salary_text, True, YELLOW)
+
+                screen.blit(name_surface, (60, 60 + i * 100))
+                screen.blit(salary_surface, (60, 80 + i * 100))
+
+                order_button = Button(order_rect.x, order_rect.y,
+                                      order_rect.width, order_rect.height,
+                                      "", GREEN, WHITE)
+                order_buttons.append(order_button)
+
+            exit_button = Button(current_width - 150, 20, 100, 50, "Выход", RED, WHITE)
+            exit_button.draw(screen)
+
+            return order_buttons, None, exit_button
+
     def draw_work_screen(self, screen, game, current_width):
+        """Отрисовывает экран работы"""
         screen.fill((30, 60, 30))
 
         # Отрисовка категорий работ
@@ -1131,19 +1193,57 @@ class WorkManager:
         button_width = (current_width - 300) // len(self.work_categories)
         button_height = 50
         button_spacing = 10
-
         category_buttons = []
-        subcategory_buttons = []
 
         for i, category in enumerate(self.work_categories):
             color = GREEN if category == self.current_category else BLUE
-            button = Button(category_x + i * (button_width + button_spacing), category_y,
-                            button_width, button_height, category, color, WHITE)
+            button = Button(category_x + i * (button_width + button_spacing),
+                            category_y,
+                            button_width,
+                            button_height,
+                            category,
+                            color,
+                            WHITE)
             button.draw(screen)
             category_buttons.append(button)
 
-        # Отрисовка заказов в выбранной категории
+        # Специальная обработка для категории Фриланс
+        if self.current_category == "Фриланс":
+            required_items = ["Курс по SEO", "Фigma", "Python курс"]
+            missing_items = [item for item in required_items if item not in game.purchased_items]
+
+            if missing_items:
+                return self.draw_missing_items_screen(screen, current_width, missing_items, "Активный заработок")
+
+        # Специальная обработка для категории Трейдинг
+        elif self.current_category == "Трейдинг":
+            required_items = [
+                "Курс 'Понятие рынка'",
+                "Курс 'межбиржевое влияние'"
+            ]
+            missing_items = [item for item in required_items if item not in game.purchased_items]
+
+            if missing_items:
+                return self.draw_missing_items_screen(screen, current_width, missing_items, "Трейдинг")
+
+        # Специальная обработка для категории P2P
+        elif self.current_category == "P2P":
+            required_items = [
+                "Нанять сотрудника",
+                "Дроповод",
+                "Мерчант Биржи",
+                "Обучение связке",
+                "Увеличить баланс",
+                "Телефон"
+            ]
+            missing_items = [item for item in required_items if item not in game.purchased_items]
+
+            if missing_items:
+                return self.draw_missing_items_screen(screen, current_width, missing_items, "Пассивный заработок")
+
+        # Отображение заказов для текущей категории
         orders = self.orders[self.current_category]
+        order_buttons = []
         for i, order in enumerate(orders):
             order_rect = pygame.Rect(50, 50 + i * 100, current_width - 100, 90)
             pygame.draw.rect(screen, (50, 80, 50), order_rect)
@@ -1157,11 +1257,44 @@ class WorkManager:
             screen.blit(name_surface, (60, 60 + i * 100))
             screen.blit(salary_surface, (60, 80 + i * 100))
 
-        exit_button = Button(current_width - 150, 20, 100, 50, "Выход", RED, WHITE)
+            order_button = Button(order_rect.x, order_rect.y,
+                                  order_rect.width, order_rect.height,
+                                  "", GREEN, WHITE)
+            order_buttons.append(order_button)
 
-        return category_buttons, subcategory_buttons, exit_button
+        exit_button = Button(current_width - 150, 20, 100, 50, "Выход", RED, WHITE)
+        exit_button.draw(screen)
+
+        return order_buttons, None, exit_button
+
+    def draw_missing_items_screen(self, screen, current_width, missing_items, shop_category):
+        """Отрисовывает экран с недостающими предметами"""
+        overlay = pygame.Surface((current_width, screen.get_height()))
+        overlay.fill((0, 0, 0))
+        overlay.set_alpha(128)
+        screen.blit(overlay, (0, 0))
+
+        message = "Для работы в этой категории необходимо приобрести:"
+        text_surface = MAIN_FONT.render(message, True, WHITE)
+        screen.blit(text_surface, (current_width // 2 - text_surface.get_width() // 2, 200))
+
+        y_offset = 250
+        for item in missing_items:
+            item_text = SMALL_FONT.render(f"- {item}", True, YELLOW)
+            screen.blit(item_text, (current_width // 2 - item_text.get_width() // 2, y_offset))
+            y_offset += 30
+
+        shop_button = Button(current_width // 2 - 100, y_offset + 20,
+                             200, 50, "Перейти в магазин", GREEN, WHITE)
+        shop_button.draw(screen)
+
+        exit_button = Button(current_width - 150, 20, 100, 50, "Выход", RED, WHITE)
+        exit_button.draw(screen)
+
+        return [], shop_button, exit_button
 
     def handle_work_events(self, mouse_pos, game):
+        """Обрабатывает события на рабочем экране"""
         new_state = None
 
         # Проверяем нажатие на категории
@@ -1172,13 +1305,40 @@ class WorkManager:
         button_spacing = 10
 
         for i, category in enumerate(self.work_categories):
-            rect = pygame.Rect(category_x + i * (button_width + button_spacing), category_y,
-                               button_width, button_height)
+            rect = pygame.Rect(category_x + i * (button_width + button_spacing),
+                               category_y,
+                               button_width,
+                               button_height)
             if rect.collidepoint(mouse_pos):
                 self.current_category = category
                 new_state = "work"
 
-        # Проверяем нажатие на заказы
+        # Обработка специальных условий для категорий
+        requirements = {
+            "Фриланс": ["Курс по SEO", "Фigma", "Python курс"],
+            "Трейдинг": ["Курс 'Понятие рынка'", "Курс 'межбиржевое влияние'"],
+            "P2P": [
+                "Нанять сотрудника",
+                "Дроповод",
+                "Мерчант Биржи",
+                "Обучение связке",
+                "Увеличить баланс",
+                "Телефон"
+            ]
+        }
+
+        if self.current_category in requirements:
+            missing_items = [item for item in requirements[self.current_category] if item not in game.purchased_items]
+
+            if missing_items:
+                # Проверяем нажатие на кнопку магазина
+                shop_button_rect = pygame.Rect(game.screen_size[0] // 2 - 100, 350, 200, 50)
+                if shop_button_rect.collidepoint(mouse_pos):
+                    new_state = "shop"
+                    game.current_shop_category = self.get_shop_category(self.current_category)
+                return new_state
+
+        # Обработка заказов
         orders = self.orders[self.current_category]
         for i, order in enumerate(orders):
             order_rect = pygame.Rect(50, 50 + i * 100, game.screen_size[0] - 100, 90)
@@ -1189,6 +1349,17 @@ class WorkManager:
                 new_state = "game"
 
         return new_state
+
+    def get_shop_category(self, work_category):
+        """Определяет соответствующую категорию магазина"""
+        mapping = {
+            "Фриланс": "Активный заработок",
+            "Трейдинг": "Трейдинг",
+            "P2P": "Пассивный заработок"
+        }
+        return mapping.get(work_category, "Активный заработок")
+
+
 
 def apply_display_mode(resolution, mode):
     """
