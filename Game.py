@@ -476,6 +476,8 @@ class Game:
         self.is_summer2_been = False
         self.is_summer3_been = False
         self.work_manager = WorkManager(pygame.display.get_surface().get_size())
+        self.study_goal = 200
+        self.study_points = 0
 
         self.purchased_items = set()  # Сет для хранения купленных предметов
 
@@ -1010,7 +1012,7 @@ class Game:
             text = font.render(self.current_plot_text, True, (0, 0, 0))
             screen.blit(text, (10, 10))
 
-            study_progress = f"Учеба: {game.study_points}/{game.study_goal}"
+            study_progress = f"Учеба: {self.study_points}/{self.study_goal}"
             study_text = MAIN_FONT.render(study_progress, True, WHITE)
             screen.blit(study_text, (600, 10))
 
@@ -1098,7 +1100,7 @@ class Game:
             "is_summer3_been": self.is_summer3_been,
 
             # Добавляем сохранение купленных предметов
-            "purchased_items": list(self.purchased_items)
+            "purchased_items": list(self.purchased_items),
             "current_month_day": self.current_month_day
         }
         with open("save.json", "w") as f:
