@@ -2092,7 +2092,7 @@ def draw_study_menu(screen, game, width, height, buttons):
 
     # Прогресс учебы
     progress_text = MAIN_FONT.render(
-        f"Прогресс: {game.study_points}/{game.study_goal}",
+        f"Прогресс: {game.study_progress}",
         True,
         WHITE
     )
