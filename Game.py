@@ -737,7 +737,7 @@ class Game:
         current_day = self.event_day
         chances = [1, 15, 30, 75, 100]
 
-        if current_day > 5:
+        '''if current_day > 5:
             current_day = 5  # Ограничение до 5 дней
 
         current_chance = chances[current_day - 1]
@@ -752,12 +752,6 @@ class Game:
         if trigger_event:
             available_events = []
             for event in PLOT_EVENTS:
-                if event.get("one_time", False) and event["name"] in self.used_events:
-                    continue
-                if event["name"] == "Конкурс стартапов" and self.startup_participated:
-                    continue
-                if event["name"] == "Спорт секция" and self.gym_participated:
-                    continue
                 available_events.append(event)
 
             if available_events:
@@ -773,7 +767,7 @@ class Game:
         if self.startup_started:
             self.startup_phase += 1
             if self.startup_phase == 5:
-                pass
+                pass'''
 
         self.s_money -= self.money
         self.s_karma -= self.karma
@@ -1302,10 +1296,16 @@ class WorkManager:
         orders = self.orders[self.current_category]
         for i, order in enumerate(orders):
             order_rect = pygame.Rect(50, 50 + i * 100, game.screen_size[0] - 100, 90)
-            if order_rect.collidepoint(mouse_pos) and game.energy > 100:
+            if order['salary'] <= 1000:
+                cost = 100
+            if order['salary'] <= 5000 and order['salary'] > 1000:
+                cost = 200
+            if order['salary'] > 5000:
+                cost = 300
+            if order_rect.collidepoint(mouse_pos) and game.energy > cost:
                 # Добавляем деньги игроку
                 game.add_money(order['salary'])
-                game.energy -= 100
+                game.energy -= cost
 
                 # Удаляем заказ из списка
                 self.orders[self.current_category].remove(order)
