@@ -1199,24 +1199,24 @@ class WorkManager:
         # Новая структура данных для заказов
         self.orders = {
             "Курьерство": [
-                {"name": "Доставка еды", "desc": "Доставка из ресторана", "salary": 300},
-                {"name": "Посылка", "desc": "Доставка небольшой посылки", "salary": 500},
-                {"name": "Документы", "desc": "Срочная доставка документов", "salary": 700}
+                {"name": "Доставка еды", "desc": "Доставка из ресторана", "salary": 300, "enrg": 100},
+                {"name": "Посылка", "desc": "Доставка небольшой посылки", "salary": 500, "enrg": 300},
+                {"name": "Документы", "desc": "Срочная доставка документов", "salary": 700, "enrg": 500}
             ],
             "Фриланс": [
-                {"name": "Лендинг", "desc": "Создание одностраничного сайта", "salary": 2000},
-                {"name": "Мобильное приложение", "desc": "Простое приложение", "salary": 5000},
-                {"name": "CRM система", "desc": "Система управления клиентами", "salary": 10000}
+                {"name": "Лендинг", "desc": "Создание одностраничного сайта", "salary": 2000, "enrg": 100},
+                {"name": "Мобильное приложение", "desc": "Простое приложение", "salary": 5000, "enrg": 300},
+                {"name": "CRM система", "desc": "Система управления клиентами", "salary": 10000, "enrg": 500}
             ],
             "Трейдинг": [
-                {"name": "Фьючерсы", "desc": "Высокий риск", "salary": 1500},
-                {"name": "Опционы", "desc": "Очень высокий риск", "salary": 2500},
-                {"name": "Акции", "desc": "Средний риск", "salary": 1000}
+                {"name": "Фьючерсы", "desc": "Высокий риск", "salary": 1500, "enrg": 100},
+                {"name": "Опционы", "desc": "Очень высокий риск", "salary": 2500, "enrg": 300},
+                {"name": "Акции", "desc": "Средний риск", "salary": 1000, "enrg": 500}
             ],
             "P2P": [
-                {"name": "Обмен валют", "desc": "Наличные/Безнал", "salary": 800},
-                {"name": "Гарант сервис", "desc": "Обеспечение сделки", "salary": 1200},
-                {"name": "Кредитование", "desc": "Микрозаймы", "salary": 1500}
+                {"name": "Обмен валют", "desc": "Наличные/Безнал", "salary": 800, "enrg": 100},
+                {"name": "Гарант сервис", "desc": "Обеспечение сделки", "salary": 1200, "enrg": 300},
+                {"name": "Кредитование", "desc": "Микрозаймы", "salary": 1500, "enrg": 500}
             ]
         }
         self.requirements = {
@@ -1302,9 +1302,10 @@ class WorkManager:
         orders = self.orders[self.current_category]
         for i, order in enumerate(orders):
             order_rect = pygame.Rect(50, 50 + i * 100, game.screen_size[0] - 100, 90)
-            if order_rect.collidepoint(mouse_pos):
+            if order_rect.collidepoint(mouse_pos) and game.energy > 100:
                 # Добавляем деньги игроку
                 game.add_money(order['salary'])
+                game.energy -= 100
 
                 # Удаляем заказ из списка
                 self.orders[self.current_category].remove(order)
