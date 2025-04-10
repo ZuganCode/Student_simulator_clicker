@@ -4,11 +4,10 @@ import sys
 import os
 from data import PLOT_EVENTS, ENDING_ARMY, ENDING_PRISON, ENDING_BORING_JOB, ENDING_DREAM, SUMMER_1, SUMMER_2, SUMMER_3, HNY, PROLOGUE_DATA
 from game_objects import Event, Ending
-from pygame.examples.sprite_texture import event
 os.environ['SDL_VIDEO_CENTERED'] = '1'
 import pygame
 from pygame.locals import RESIZABLE
-
+from pygame.examples.sprite_texture import event
 
 """O Great God of Code!
 
@@ -619,6 +618,7 @@ class Game:
         """
     Выполняет действие учебы.
 
+
     Args:
         energy_cost (int): Затраты энергии на учебу
     """
@@ -630,8 +630,36 @@ class Game:
                 self.lab_completed = True
                 self.study_score += 10
 
+    #обновление метода study
+    def check_study_progress(self):
+        if self.study_points >= self.study_goal:
+            self.university_passed = True
+            return True
+        return False
 
+    def study_lab(self):
+        if self.energy >= 300 and not self.university_passed:
+            self.energy -= 300
+            self.study_points += 3
+            self.check_study_progress()
+            return "Лабораторная работа завершена! +3 очка"
+        return "Недостаточно энергии или учеба завершена"
 
+    def study_lecture(self):
+        if self.energy >= 150 and not self.university_passed:
+            self.energy -= 150
+            self.study_points += 1
+            self.check_study_progress()
+            return "Лекция прослушана! +1 очко"
+        return "Недостаточно энергии или учеба завершена"
+
+    def study_exam(self):
+        if self.energy >= 2000 and not self.university_passed:
+            self.energy -= 2000
+            self.study_points += 10
+            self.check_study_progress()
+            return "Экзамен сдан! +10 очков"
+        return "Недостаточно энергии или учеба завершена"
 
 
     def get_daily_stats(self):
@@ -837,20 +865,29 @@ class Game:
 
         return bg, buttons, text_surface
 
-
-    def wrap_text(self, text, max_width, font):
-        """Переносит текст, чтобы он влезал в указанную ширину."""
+    def wrap_text(text, font, max_width):
+        """
+        Разбивает текст на строки, чтобы он помещался в заданную ширину.
+        Args:
+            text (str): Исходный текст.
+            font (pygame.font.Font): Шрифт для расчета размера текста.
+            max_width (int): Максимальная ширина строки.
+        Returns:
+            list: Список строк, разбитых по ширине.
+        """
+        if not isinstance(text, str):
+            text = str(text)  # Преобразуем в строку, если это не строка
         words = text.split(' ')
         lines = []
-        current_line = ""
+        current_line = ''
         for word in words:
-            if font.size(current_line + word + " ")[0] <= max_width:
-                current_line += word + " "
+            test_line = current_line + word + ' '
+            if font.size(test_line)[0] <= max_width:
+                current_line = test_line
             else:
                 lines.append(current_line.strip())
-                current_line = word + " "
-        if current_line:
-            lines.append(current_line.strip())
+                current_line = word + ' '
+        lines.append(current_line.strip())
         return lines
 
 
@@ -973,6 +1010,10 @@ class Game:
             text = font.render(self.current_plot_text, True, (0, 0, 0))
             screen.blit(text, (10, 10))
 
+            study_progress = f"Учеба: {game.study_points}/{game.study_goal}"
+            study_text = MAIN_FONT.render(study_progress, True, WHITE)
+            screen.blit(study_text, (600, 10))
+
 
     def lottery(self):
         """
@@ -996,8 +1037,11 @@ class Game:
             self.set_current_plot_text("Недостаточно денег для участия в лотерее.")
             return "Недостаточно денег для участия в лотерее."
 
+
     def save_game(self):
-        """Сохраняет текущее состояние игры в файл."""
+        """
+    Сохраняет текущее состояние игры в файл.
+    """
         data = {
             "money": self.money,
             "energy": self.energy,
@@ -1016,7 +1060,31 @@ class Game:
             "monthly_study_progress": self.monthly_study_progress,
             "monthly_money_history": self.monthly_money_history,
             "monthly_study_history": self.monthly_study_history,
-            "current_month_day": self.current_month_day,
+            "monthly_start_money": self.monthly_start_money,
+            "monthly_start_karma": self.monthly_start_karma,
+            "monthly_start_study_progress": self.monthly_start_study_progress,
+            "failed_exam": self.failed_exam,
+            "illegal_activity_score": self.illegal_activity_score,
+            "last_scholarship_amount": self.last_scholarship_amount,
+            "s_money": self.s_money,
+            "s_karma": self.s_karma,
+            "s_study_progress": self.s_study_progress,
+            "max_energy": self.max_energy,
+            "mining_income": self.mining_income,
+            "work_income": self.work_income,
+            "scholarship": self.scholarship,
+            "rent_paid": self.rent_paid,
+            "rent_cost": self.rent_cost,
+            "housing_bonus": self.housing_bonus,
+            "expensive_item_goal": self.expensive_item_goal,
+            "current_item_savings": self.current_item_savings,
+            "daily_expenses": self.daily_expenses,
+            "daily_expense_buff": self.daily_expense_buff,
+            "endurance": self.endurance,
+            "startup_participated": self.startup_participated,
+            "gym_participated": self.gym_participated,
+            "startup_phase": self.startup_phase,
+            "startup_started": self.startup_started,
             "sport_endurance_bonus": self.sport_endurance_bonus,
             "plot_events": self.plot_events,
             "current_plot_text": self.current_plot_text,
@@ -1031,19 +1099,20 @@ class Game:
 
             # Добавляем сохранение купленных предметов
             "purchased_items": list(self.purchased_items)
+            "current_month_day": self.current_month_day
         }
-
         with open("save.json", "w") as f:
             json.dump(data, f)
 
+
     def load_game(self):
-        """Загружает сохраненное состояние игры из файла.
-        В случае отсутствия файла создает новую игру."""
+        """
+    Загружает сохраненное состояние игры из файла.
+    В случае отсутствия файла создает новую игру.
+    """
         try:
             with open("save.json", "r") as f:
                 data = json.load(f)
-
-                # Загрузка основных параметров игры
                 self.money = data.get("money", 100)
                 self.energy = data.get("energy", 100)
                 self.total_days = data.get("total_days", 1)
@@ -1052,21 +1121,46 @@ class Game:
                 self.lab_completed = data.get("lab_completed", False)
                 self.study_score = data.get("study_score", 0)
                 self.knowledge_check_passed = data.get("knowledge_check_passed", False)
-                self.start_money = data.get("start_money", 0)
-                self.start_karma = data.get("start_karma", 0)
-                self.start_study_progress = data.get("start_study_progress", 0.0)
                 self.current_season_index = data.get("current_season_index", 0)
+                self.start_money = data.get("start_money", self.money)
+                self.start_karma = data.get("start_karma", self.karma)
+                self.start_study_progress = data.get("start_study_progress", self.study_progress)
                 self.monthly_money_change = data.get("monthly_money_change", 0)
                 self.monthly_karma_change = data.get("monthly_karma_change", 0)
                 self.monthly_study_progress = data.get("monthly_study_progress", 0.0)
                 self.monthly_money_history = data.get("monthly_money_history", [])
                 self.monthly_study_history = data.get("monthly_study_history", [])
+                self.monthly_start_money = data.get("monthly_start_money", self.money)
+                self.monthly_start_karma = data.get("monthly_start_karma", self.karma)
+                self.monthly_start_study_progress = data.get("monthly_start_study_progress", self.study_progress)
                 self.current_month_day = data.get("current_month_day", 0)
+                self.failed_exam = data.get("failed_exam", False)
+                self.illegal_activity_score = data.get("illegal_activity_score", 0)
+                self.last_scholarship_amount = data.get("last_scholarship_amount", None)
+                self.s_money = data.get("s_money", 0)
+                self.s_karma = data.get("s_karma", 0)
+                self.s_study_progress = data.get("s_study_progress", 0)
+                self.max_energy = data.get("max_energy", 3000)
+                self.mining_income = data.get("mining_income", 10)
+                self.work_income = data.get("work_income", 20)
+                self.scholarship = data.get("scholarship", 1000)
+                self.rent_paid = data.get("rent_paid", True)
+                self.rent_cost = data.get("rent_cost", 100)
+                self.housing_bonus = data.get("housing_bonus", 0)
+                self.expensive_item_goal = data.get("expensive_item_goal", 5000)
+                self.current_item_savings = data.get("current_item_savings", 0)
+                self.daily_expenses = data.get("daily_expenses", 10)
+                self.daily_expense_buff = data.get("daily_expense_buff", 0)
+                self.endurance = data.get("endurance", 100)
+                self.startup_participated = data.get("startup_participated", False)
+                self.gym_participated = data.get("gym_participated", False)
+                self.startup_phase = data.get("startup_phase", 0)
+                self.startup_started = data.get("startup_started", False)
                 self.sport_endurance_bonus = data.get("sport_endurance_bonus", 0)
                 self.plot_events = data.get("plot_events", [])
                 self.current_plot_text = data.get("current_plot_text", None)
                 self.message_timer = data.get("message_timer", 0)
-                self.used_events = set(data.get("used_events", []))
+                self.used_events = set(data.get("used_events", []))  # Преобразуем список обратно во множество
                 self.event_day = data.get("event_day", 0)
                 self.max_event_days = data.get("max_event_days", 5)
                 self.military_ID = data.get("military_ID", False)
@@ -1193,7 +1287,9 @@ class WorkManager:
         button_width = (current_width - 300) // len(self.work_categories)
         button_height = 50
         button_spacing = 10
+
         category_buttons = []
+        subcategory_buttons = []
 
         for i, category in enumerate(self.work_categories):
             color = GREEN if category == self.current_category else BLUE
@@ -1495,7 +1591,7 @@ def handle_mouse_events(mouse_pos, state, game, current_plot_text, settings_butt
         for action, button in game.buttons.items():
             if button.is_clicked(mouse_pos):
                 if action == "study":
-                    return "game", game.study(20)
+                    return "study_menu", current_plot_text
                 elif action == "work":
                     return "work", current_plot_text
                 elif action == "next_day":
@@ -1509,6 +1605,16 @@ def handle_mouse_events(mouse_pos, state, game, current_plot_text, settings_butt
                     return "game", game.lottery()
                 elif action == "shop":
                     return "shop", current_plot_text
+
+    elif state == "study_menu":  # <-- НОВЫЙ БЛОК ЗДЕСЬ
+        if buttons["study_menu"]["lab"].is_clicked(mouse_pos):
+            return "game", game.study_lab()
+        elif buttons["study_menu"]["lecture"].is_clicked(mouse_pos):
+            return "game", game.study_lecture()
+        elif buttons["study_menu"]["exam"].is_clicked(mouse_pos):
+            return "game", game.study_exam()
+        elif buttons["study_menu"]["back"].is_clicked(mouse_pos):
+            return "game", current_plot_text
 
     elif state in ["settings", "game_settings"]:
         source_state = "game" if state == "game_settings" else "main_menu"
@@ -1604,6 +1710,7 @@ def handle_mouse_events(mouse_pos, state, game, current_plot_text, settings_butt
 
 
 def draw_shop_screen(screen, game, current_width):
+    """Отрисовывает экран магазина."""
     screen.fill((30, 30, 60))
 
     screen_size = pygame.display.get_surface().get_size()
@@ -1617,7 +1724,6 @@ def draw_shop_screen(screen, game, current_width):
     category_buttons = []
     subcategory_buttons = []
 
-    # Отрисовка категорий
     for category in game.shop_items.keys():
         color = GREEN if category == game.current_shop_category else BLUE
         button = Button(category_x, category_y, button_width, button_height,
@@ -1643,6 +1749,7 @@ def draw_shop_screen(screen, game, current_width):
     # Отрисовка товаров
     items_start_y = 200
     current_items = []
+
     if game.current_shop_category in game.shop_items:
         items = game.shop_items[game.current_shop_category]
         if game.current_shop_subcategory and isinstance(items, dict):
@@ -1896,8 +2003,55 @@ def draw_state(screen, state, game, current_plot_text, settings_button, settings
         # Затем поверх него отрисовываем окно подтверждения
         draw_exit_confirmation(screen, current_width, buttons["exit_confirmation"])
 
+    elif state == "study_menu":
+        draw_study_menu(screen, game, current_width, current_height, buttons["study_menu"])
+
     return state, current_plot_text
 
+
+def draw_study_menu(screen, game, width, height, buttons):
+    # Полупрозрачный фон
+    overlay = pygame.Surface((width, height), pygame.SRCALPHA)
+    overlay.fill((0, 0, 0, 128))
+    screen.blit(overlay, (0, 0))
+
+    # Окно меню (центрированное)
+    menu_width = 500
+    menu_height = 300
+    menu_rect = pygame.Rect(
+        (width - menu_width) // 2,
+        (height - menu_height) // 2,
+        menu_width,
+        menu_height
+    )
+    pygame.draw.rect(screen, (30, 30, 60), menu_rect)
+
+    # Прогресс учебы
+    progress_text = MAIN_FONT.render(
+        f"Прогресс: {game.study_points}/{game.study_goal}",
+        True,
+        WHITE
+    )
+    screen.blit(progress_text, (menu_rect.x + 20, menu_rect.y + 20))
+
+    if game.university_passed:
+        # Сообщение о завершении
+        text = MAIN_FONT.render("Учеба завершена!", True, GREEN)
+        text_rect = text.get_rect(center=menu_rect.center)
+        screen.blit(text, text_rect)
+    else:
+        # Кнопки (центрированные по вертикали)
+        button_y = menu_rect.y + 70
+        for btn in buttons.values():
+            btn.rect.centerx = menu_rect.centerx
+            btn.rect.y = button_y
+            btn.draw(screen)
+            button_y += 70
+
+    # Кнопка "Назад" всегда видна
+    buttons["back"].rect.centerx = menu_rect.centerx
+    buttons["back"].rect.y = menu_rect.bottom - 15
+    buttons["back"].draw(screen)
 
 def draw_monthly_graph(screen, money_history, study_history, rect, game):
     if len(money_history) < 2:
@@ -2015,6 +2169,10 @@ def draw_game_screen(screen, game, current_plot_text, settings_button, settings_
     # Отрисовка текста "День (Сезон)"
     day_season_text = MAIN_FONT.render(f"День {game.total_days} ({game.season})", True, WHITE)
     screen.blit(day_season_text, (50, 10))
+
+    study_progress = f"Учеба: {game.study_points}/{game.study_goal}"
+    study_text = MAIN_FONT.render(study_progress, True, WHITE)
+    screen.blit(study_text, (600, 10))
 
     # Деньги: иконка и текст
     if money_icon:
@@ -2494,12 +2652,36 @@ def main():
         "sound": {}
     }
 
+    study_menu_buttons = {
+        "lab": Button(
+            0, 0, 400, 50,
+            "Лабораторная (300 энергии)",
+            BLUE, WHITE
+        ),
+        "lecture": Button(
+            0, 0, 400, 50,
+            "Лекция (150 энергии)",
+            GREEN, WHITE
+        ),
+        "exam": Button(
+            0, 0, 400, 50,
+            "Экзамен (2000 энергии)",
+            RED, WHITE
+        ),
+        "back": Button(
+            0, 0, 400, 30,
+            "Назад",
+            GRAY, BLACK
+        )
+    }
+
     # Собираем все группы кнопок
     buttons = {
         "main_menu": main_menu_buttons,
         "new_game_warning": new_game_warning_buttons,
         "prologue_choice": prologue_choice_buttons,
         "settings": settings_buttons,
+        "study_menu": study_menu_buttons,
         "game_settings": {
             "back": Button(50, current_height - 70, 200, 50, "Назад", RED, WHITE),
             "exit_to_menu": Button(300, current_height - 70, 200, 50, "Выход в меню", YELLOW, BLACK)
@@ -2565,6 +2747,21 @@ def main():
             game.update_button_positions((current_width, current_height))
             for button in game.buttons.values():
                 button.update(mouse_pos)
+
+
+        '''Интеграция состояния в основной игровой цикл'''
+        if state == "shop":
+            category_buttons, buy_buttons, exit_button = draw_shop_screen(screen, game, current_width)
+
+            for event in pygame.event.get():
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    mouse_pos = pygame.mouse.get_pos()
+                    result = handle_shop_events(mouse_pos, game, category_buttons, buy_buttons, exit_button)
+                    if result:
+                        if result == "game":
+                            state = "game"
+                        else:
+                            current_plot_text = result
 
         if game.current_plot_text is not None:
             current_time = pygame.time.get_ticks()
