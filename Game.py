@@ -482,6 +482,7 @@ class Game:
         self.work_manager = WorkManager(pygame.display.get_surface().get_size())
         self.study_goal = 200
         self.study_points = 0
+        self.university_passed = False
 
         self.purchased_items = set()  # Сет для хранения купленных предметов
 
@@ -638,7 +639,7 @@ class Game:
 
     #обновление метода study
     def check_study_progress(self):
-        if self.study_points >= self.study_goal:
+        if self.study_progress >= self.study_goal:
             self.university_passed = True
             return True
         return False
@@ -646,7 +647,7 @@ class Game:
     def study_lab(self):
         if self.energy >= 300 and not self.university_passed:
             self.energy -= 300
-            self.study_points += 3
+            self.study_progress += 3
             self.check_study_progress()
             return "Лабораторная работа завершена! +3 очка"
         return "Недостаточно энергии или учеба завершена"
@@ -654,7 +655,7 @@ class Game:
     def study_lecture(self):
         if self.energy >= 150 and not self.university_passed:
             self.energy -= 150
-            self.study_points += 1
+            self.study_progress += 1
             self.check_study_progress()
             return "Лекция прослушана! +1 очко"
         return "Недостаточно энергии или учеба завершена"
@@ -662,7 +663,7 @@ class Game:
     def study_exam(self):
         if self.energy >= 2000 and not self.university_passed:
             self.energy -= 2000
-            self.study_points += 10
+            self.study_progress += 10
             self.check_study_progress()
             return "Экзамен сдан! +10 очков"
         return "Недостаточно энергии или учеба завершена"
@@ -1010,7 +1011,7 @@ class Game:
             text = font.render(self.current_plot_text, True, (0, 0, 0))
             screen.blit(text, (10, 10))
 
-            study_progress = f"Учеба: {self.study_points}/{self.study_goal}"
+            study_progress = f"Учеба: {self.study_progress}/{self.study_goal}"
             study_text = MAIN_FONT.render(study_progress, True, WHITE)
             screen.blit(study_text, (600, 10))
 
@@ -2234,7 +2235,7 @@ def draw_game_screen(screen, game, current_plot_text, settings_button, settings_
     day_season_text = MAIN_FONT.render(f"День {game.total_days} ({game.season})", True, WHITE)
     screen.blit(day_season_text, (50, 10))
 
-    study_progress = f"Учеба: {game.study_points}/{game.study_goal}"
+    study_progress = f"Учеба: {game.study_progress}/{game.study_goal}"
     study_text = MAIN_FONT.render(study_progress, True, WHITE)
     screen.blit(study_text, (600, 10))
 
@@ -2259,8 +2260,6 @@ def draw_game_screen(screen, game, current_plot_text, settings_button, settings_
     stat_y = 100
     stat_lines = [
         f"Стипендия: {game.scholarship}",
-        f"Прогресс учёбы: {game.study_progress:.1f}",
-        f"Лабораторная выполнена: {game.lab_completed}"
     ]
     for line in stat_lines:
         stat_text = MAIN_FONT.render(line, True, WHITE)
