@@ -314,6 +314,10 @@ class Button:
         self.current_color = color
         self.icon = icon
 
+    def is_hovered(self, mouse_pos):
+        """Проверяет, находится ли курсор над кнопкой"""
+        return self.rect.collidepoint(mouse_pos)
+
 
     def draw(self, surface):
         """Рисует кнопку"""
@@ -1190,6 +1194,8 @@ class WorkManager:
         self.selected_order = None
 
 
+
+
         # Новая структура данных для заказов
         self.orders = {
             "Курьерство": [
@@ -1211,6 +1217,18 @@ class WorkManager:
                 {"name": "Обмен валют", "desc": "Наличные/Безнал", "salary": 800},
                 {"name": "Гарант сервис", "desc": "Обеспечение сделки", "salary": 1200},
                 {"name": "Кредитование", "desc": "Микрозаймы", "salary": 1500}
+            ]
+        }
+        self.requirements = {
+            "Фриланс": ["Курс по SEO", "Фigma", "Python курс"],
+            "Трейдинг": ["Курс 'Понятие рынка'", "Курс 'межбиржевое влияние'"],
+            "P2P": [
+                "Нанять сотрудника",
+                "Дроповод",
+                "Мерчант Биржи",
+                "Обучение связке",
+                "Увеличить баланс",
+                "Телефон"
             ]
         }
 
@@ -1279,9 +1297,64 @@ class WorkManager:
 
             return order_buttons, None, exit_button
 
-    def draw_work_screen(self, screen, game, current_width):
+    def handle_order_click(self, mouse_pos, game):
+        """Обрабатывает клик по заказу и выдает вознаграждение"""
+        orders = self.orders[self.current_category]
+        for i, order in enumerate(orders):
+            order_rect = pygame.Rect(50, 50 + i * 100, game.screen_size[0] - 100, 90)
+            if order_rect.collidepoint(mouse_pos):
+                # Добавляем деньги игроку
+                game.add_money(order['salary'])
+
+                # Удаляем заказ из списка
+                self.orders[self.current_category].remove(order)
+
+                # Добавляем сообщение о выполнении заказа
+                game.set_current_plot_text(
+                    f"Вы выполнили заказ: {order['name']} и получили ${order['salary']}"
+                )
+
+                # Генерируем новый заказ взамен выполненного
+                self.generate_new_order(self.current_category)
+
+                return True
+        return False
+
+    def generate_new_order(self, category):
+        """Генерирует новый заказ для указанной категории"""
+        base_orders = {
+            "Курьерство": [
+                {"name": "Доставка еды", "desc": "Доставка из ресторана", "salary": random.randint(300, 700)},
+                {"name": "Посылка", "desc": "Доставка небольшой посылки", "salary": random.randint(500, 900)},
+                {"name": "Документы", "desc": "Срочная доставка документов", "salary": random.randint(700, 1200)}
+            ],
+            "Фриланс": [
+                {"name": "Лендинг", "desc": "Создание одностраничного сайта", "salary": random.randint(2000, 3000)},
+                {"name": "Мобильное приложение", "desc": "Простое приложение", "salary": random.randint(5000, 7000)},
+                {"name": "CRM система", "desc": "Система управления клиентами", "salary": random.randint(10000, 15000)}
+            ],
+            "Трейдинг": [
+                {"name": "Фьючерсы", "desc": "Высокий риск", "salary": random.randint(1000, 1500)},
+                {"name": "Опционы", "desc": "Очень высокий риск", "salary": random.randint(2000, 2500)},
+                {"name": "Акции", "desc": "Средний риск", "salary": random.randint(800, 1200)}
+            ],
+            "P2P": [
+                {"name": "Обмен валют", "desc": "Наличные/Безнал", "salary": random.randint(600, 800)},
+                {"name": "Гарант сервис", "desc": "Обеспечение сделки", "salary": random.randint(1000, 1200)},
+                {"name": "Кредитование", "desc": "Микрозаймы", "salary": random.randint(1300, 1500)}
+            ]
+        }
+
+        new_order = random.choice(base_orders[category])
+        self.orders[category].append(new_order)
+
+    def draw_work_screen(self, screen, game, current_width, mouse_pos):
         """Отрисовывает экран работы"""
-        screen.fill((30, 60, 30))
+        screen.fill((30, 60, 30))  # Заливка фона
+
+        category_buttons = []  # Список кнопок категорий
+        subcategory_buttons = []  # Пустой список подкатегорий
+        exit_button = None  # Кнопка выхода
 
         # Отрисовка категорий работ
         category_x = 50
@@ -1290,11 +1363,23 @@ class WorkManager:
         button_height = 50
         button_spacing = 10
 
-        category_buttons = []
-        subcategory_buttons = []
-
         for i, category in enumerate(self.work_categories):
             color = GREEN if category == self.current_category else BLUE
+
+            # Проверяем требования для категории
+            missing_items = []
+            if category in self.requirements:
+                missing_items = [item for item in self.requirements[category]
+                                 if item not in game.purchased_items]
+
+            if missing_items:
+                color = RED  # Красный цвет если не хватает предметов
+            elif category == self.current_category:
+                color = GREEN
+            else:
+                color = BLUE
+
+            # Создаем и отрисовываем кнопку категории
             button = Button(category_x + i * (button_width + button_spacing),
                             category_y,
                             button_width,
@@ -1305,39 +1390,22 @@ class WorkManager:
             button.draw(screen)
             category_buttons.append(button)
 
-        # Специальная обработка для категории Фриланс
-        if self.current_category == "Фриланс":
-            required_items = ["Курс по SEO", "Фigma", "Python курс"]
-            missing_items = [item for item in required_items if item not in game.purchased_items]
+            # Выводим информацию о требованиях при наведении
+            if button.is_hovered(mouse_pos):  # Теперь работает, так как mouse_pos передан
+                if missing_items:
+                    text = SMALL_FONT.render(
+                        f"Требуется: {', '.join(missing_items)}",
+                        True, YELLOW
+                    )
+                    screen.blit(text, (button.rect.x, button.rect.y - 20))
 
+        # Обработка специальных условий для текущей категории
+        if self.current_category in self.requirements:
+            missing_items = [item for item in self.requirements[self.current_category]
+                             if item not in game.purchased_items]
             if missing_items:
-                return self.draw_missing_items_screen(screen, current_width, missing_items, "Активный заработок")
-
-        # Специальная обработка для категории Трейдинг
-        elif self.current_category == "Трейдинг":
-            required_items = [
-                "Курс 'Понятие рынка'",
-                "Курс 'межбиржевое влияние'"
-            ]
-            missing_items = [item for item in required_items if item not in game.purchased_items]
-
-            if missing_items:
-                return self.draw_missing_items_screen(screen, current_width, missing_items, "Трейдинг")
-
-        # Специальная обработка для категории P2P
-        elif self.current_category == "P2P":
-            required_items = [
-                "Нанять сотрудника",
-                "Дроповод",
-                "Мерчант Биржи",
-                "Обучение связке",
-                "Увеличить баланс",
-                "Телефон"
-            ]
-            missing_items = [item for item in required_items if item not in game.purchased_items]
-
-            if missing_items:
-                return self.draw_missing_items_screen(screen, current_width, missing_items, "Пассивный заработок")
+                return self.draw_missing_items_screen(screen, current_width,
+                                                      missing_items, "Работа")
 
         # Отображение заказов для текущей категории
         orders = self.orders[self.current_category]
@@ -1355,15 +1423,19 @@ class WorkManager:
             screen.blit(name_surface, (60, 60 + i * 100))
             screen.blit(salary_surface, (60, 80 + i * 100))
 
-            order_button = Button(order_rect.x, order_rect.y,
-                                  order_rect.width, order_rect.height,
-                                  "", GREEN, WHITE)
-            order_buttons.append(order_button)
+            # Добавляем кнопку "Выполнить"
+            complete_button = Button(order_rect.x + order_rect.width - 120,
+                                     order_rect.y + 10,
+                                     100, 30,
+                                     "Выполнить", GREEN, WHITE)
+            complete_button.draw(screen)
+            order_buttons.append(complete_button)
 
+        # Кнопка выхода
         exit_button = Button(current_width - 150, 20, 100, 50, "Выход", RED, WHITE)
         exit_button.draw(screen)
 
-        return order_buttons, None, exit_button
+        return category_buttons, subcategory_buttons, exit_button
 
     def draw_missing_items_screen(self, screen, current_width, missing_items, shop_category):
         """Отрисовывает экран с недостающими предметами"""
@@ -1395,7 +1467,7 @@ class WorkManager:
         """Обрабатывает события на рабочем экране"""
         new_state = None
 
-        # Проверяем нажатие на категории
+        # Проверяем клики по категориям
         category_x = 50
         category_y = game.screen_size[1] - 70
         button_width = (game.screen_size[0] - 300) // len(self.work_categories)
@@ -1408,54 +1480,36 @@ class WorkManager:
                                button_width,
                                button_height)
             if rect.collidepoint(mouse_pos):
+                # Проверяем требования для выбранной категории
+                if category in self.requirements:
+                    missing_items = [item for item in self.requirements[category]
+                                     if item not in game.purchased_items]
+
+                    if missing_items:
+                        # Если есть недостающие предметы, показываем предупреждение
+                        game.set_current_plot_text(
+                            f"Для работы в категории '{category}' нужны: "
+                            f"{', '.join(missing_items)}"
+                        )
+                        return "work", game.current_plot_text
+
+                # Если все требования выполнены, меняем категорию
                 self.current_category = category
                 new_state = "work"
-
-        # Обработка специальных условий для категорий
-        requirements = {
-            "Фриланс": ["Курс по SEO", "Фigma", "Python курс"],
-            "Трейдинг": ["Курс 'Понятие рынка'", "Курс 'межбиржевое влияние'"],
-            "P2P": [
-                "Нанять сотрудника",
-                "Дроповод",
-                "Мерчант Биржи",
-                "Обучение связке",
-                "Увеличить баланс",
-                "Телефон"
-            ]
-        }
-
-        if self.current_category in requirements:
-            missing_items = [item for item in requirements[self.current_category] if item not in game.purchased_items]
-
-            if missing_items:
-                # Проверяем нажатие на кнопку магазина
-                shop_button_rect = pygame.Rect(game.screen_size[0] // 2 - 100, 350, 200, 50)
-                if shop_button_rect.collidepoint(mouse_pos):
-                    new_state = "shop"
-                    game.current_shop_category = self.get_shop_category(self.current_category)
-                return new_state
+                break
 
         # Обработка заказов
-        orders = self.orders[self.current_category]
-        for i, order in enumerate(orders):
-            order_rect = pygame.Rect(50, 50 + i * 100, game.screen_size[0] - 100, 90)
-            if order_rect.collidepoint(mouse_pos):
-                # Логика выбора заказа
-                self.selected_order = order
-                game.set_current_plot_text(f"Вы выбрали заказ: {order['name']}")
-                new_state = "game"
+        if not new_state:
+            order_completed = self.handle_order_click(mouse_pos, game)
+            if order_completed:
+                new_state = "work"
 
-        return new_state
+        # Проверка кнопки выхода
+        exit_button_rect = pygame.Rect(game.screen_size[0] - 150, 20, 100, 50)
+        if exit_button_rect.collidepoint(mouse_pos):
+            new_state = "game"
 
-    def get_shop_category(self, work_category):
-        """Определяет соответствующую категорию магазина"""
-        mapping = {
-            "Фриланс": "Активный заработок",
-            "Трейдинг": "Трейдинг",
-            "P2P": "Пассивный заработок"
-        }
-        return mapping.get(work_category, "Активный заработок")
+        return new_state, game.current_plot_text
 
 
 
@@ -1990,9 +2044,16 @@ def draw_state(screen, state, game, current_plot_text, settings_button, settings
             # Отрисовываем текст события внизу
             screen.blit(text_surface, (0, screen.get_height() - text_surface.get_height()))
 
+
     elif state == "work":
+
+        mouse_pos = pygame.mouse.get_pos()  # Получаем текущую позицию мыши
+
         category_buttons, subcategory_buttons, exit_button = game.work_manager.draw_work_screen(
-            screen, game, current_width)
+
+            screen, game, current_width, mouse_pos
+
+        )
 
     elif state in ["settings", "game_settings"]:
         source_state = "game" if state == "game_settings" else "main_menu"
@@ -2713,9 +2774,14 @@ def main():
         settings_button.rect.x = current_width - 60
         settings_button.update(mouse_pos)
 
+        # Обновление состояния игры
         ending_check = game.update()
         if ending_check:
             state = f"ending_{ending_check}"
+
+        # Проверяем, является ли state кортежем
+        if isinstance(state, tuple):
+            state = state[0]  # Извлекаем первый элемент, если это кортеж
 
         if state.startswith("ending_"):
             ending_type = state.split("_")[1]
