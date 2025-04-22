@@ -1,4 +1,5 @@
 import pygame
+import random
 
 
 WHITE = (255, 255, 255)  # Белый
@@ -289,3 +290,116 @@ class Event:
 
     def is_finished(self):
         return self.finished
+
+
+class DeliveryMinigame:
+    def __init__(self, screen_size, salary):
+        self.screen_size = screen_size
+        self.cell_size = 40
+        self.grid_width = screen_size[0] // self.cell_size
+        self.grid_height = screen_size[1] // self.cell_size
+        self.player_pos = (self.grid_width // 2, self.grid_height // 2)
+        self.finish_pos = (random.randint(0, self.grid_width - 1), random.randint(0, self.grid_height - 1))
+        self.obstacles = []
+        self.generate_obstacles()
+        self.salary = salary
+        self.completed = False
+        self.crashed = False  # Столкновение с препятствием
+        self.is_timeout = False  # Истечение времени
+        self.time_left = 10  # Время в секундах (например, 60 секунд)
+        self.start_time = pygame.time.get_ticks()  # Запоминаем время начала игры
+
+    def generate_obstacles(self):
+        """Генерирует препятствия на карте"""
+        for _ in range(self.grid_width * self.grid_height // 15):  # ~10% клеток - препятствия
+            while True:
+                pos = (random.randint(0, self.grid_width - 1), random.randint(0, self.grid_height - 1))
+                if pos != self.player_pos and pos != self.finish_pos and pos not in self.obstacles:
+                    self.obstacles.append(pos)
+                    break
+
+    def update(self, keys):
+        """Обновляет состояние мини-игры"""
+        current_time = pygame.time.get_ticks()
+        elapsed_time = (current_time - self.start_time) / 1000  # Прошедшее время в секундах
+        self.time_left = max(0, 10 - elapsed_time)  # Уменьшаем оставшееся время
+
+        new_pos = list(self.player_pos)
+        if keys[pygame.K_UP]:
+            new_pos[1] -= 1
+        elif keys[pygame.K_DOWN]:
+            new_pos[1] += 1
+        elif keys[pygame.K_LEFT]:
+            new_pos[0] -= 1
+        elif keys[pygame.K_RIGHT]:
+            new_pos[0] += 1
+
+        new_pos = tuple(new_pos)
+
+        # Проверка столкновений
+        if new_pos in self.obstacles or \
+                new_pos[0] < 0 or new_pos[0] >= self.grid_width or \
+                new_pos[1] < 0 or new_pos[1] >= self.grid_height:
+            self.crashed = True  # Игрок врезался в препятствие
+            return
+
+        # Обновляем позицию игрока
+        self.player_pos = new_pos
+
+        # Проверяем достижение цели
+        if self.player_pos == self.finish_pos:
+            self.completed = True
+
+        # Проверяем истечение времени
+        if self.time_left <= 0:
+            self.is_timeout = True  # Таймер закончился
+
+    def draw(self, screen):
+        """Отрисовывает мини-игру на экране"""
+        screen.fill((30, 60, 30))
+
+        # Рисуем препятствия
+        for obstacle in self.obstacles:
+            pygame.draw.rect(screen, GRAY, (
+                obstacle[0] * self.cell_size, obstacle[1] * self.cell_size, self.cell_size, self.cell_size))
+
+        # Рисуем игрока
+        pygame.draw.rect(screen, (255, 165, 0), (
+            self.player_pos[0] * self.cell_size, self.player_pos[1] * self.cell_size, self.cell_size, self.cell_size))
+
+        # Рисуем финиш
+        pygame.draw.rect(screen, RED, (
+            self.finish_pos[0] * self.cell_size, self.finish_pos[1] * self.cell_size, self.cell_size, self.cell_size))
+
+        # Отображаем оставшееся время
+        font = pygame.font.Font(None, 36)
+        time_text = font.render(f"Time left: {int(self.time_left)}", True, WHITE)
+        screen.blit(time_text, (10, 10))
+
+        # Если достигнут финиш, показываем сообщение о заработанных деньгах
+        if self.completed:
+            result_text = font.render(f"Вы доставили заказ и получили ${self.salary}", True, WHITE)
+            screen.blit(result_text, (
+                self.screen_size[0] // 2 - result_text.get_width() // 2,
+                self.screen_size[1] // 2 - result_text.get_height() // 2))
+        # Если произошло столкновение или истечение времени, показываем сообщение об ошибке
+        elif self.crashed or self.is_timeout:
+            if self.crashed:
+                result_text = font.render("Вы врезались в препятствие...", True, WHITE)
+            else:
+                result_text = font.render("Время вышло...", True, WHITE)
+            screen.blit(result_text, (
+                self.screen_size[0] // 2 - result_text.get_width() // 2,
+                self.screen_size[1] // 2 - result_text.get_height() // 2))
+
+    def is_completed(self):
+        """Возвращает True, если мини-игра завершена успешно"""
+        return self.completed
+
+    def is_crashed(self):
+        """Возвращает True, если игрок столкнулся с препятствием"""
+        return self.crashed
+
+    def is_timeout(self):
+        """Возвращает True, если время вышло"""
+        return self.is_timeout

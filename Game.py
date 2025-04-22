@@ -3,7 +3,7 @@ import random
 import sys
 import os
 from data import PLOT_EVENTS, ENDING_ARMY, ENDING_PRISON, ENDING_BORING_JOB, ENDING_DREAM, SUMMER_1, SUMMER_2, SUMMER_3, HNY, PROLOGUE_DATA
-from game_objects import Event, Ending
+from game_objects import Event, Ending, DeliveryMinigame
 os.environ['SDL_VIDEO_CENTERED'] = '1'
 import pygame
 from pygame.locals import RESIZABLE
@@ -1180,6 +1180,69 @@ class Game:
     def whats_day(self):
         return self.total_days
 
+    def play_delivery_game(self, order_salary):
+        """Мини-игра доставки"""
+        delivery_game = DeliveryMinigame(self.screen_size, order_salary)
+        clock = pygame.time.Clock()
+        running = True
+        message_start_time = 0  # Время начала показа сообщения
+        message_duration = 700  # Длительность показа сообщения (5 секунд)
+        game_result = None  # Результат игры (None, "completed", "crashed", "timeout")
+
+        while running:
+            keys = pygame.key.get_pressed()
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                    break
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        running = False
+                        break
+
+            delivery_game.update(keys)
+
+            # Проверяем условия завершения игры
+            if delivery_game.is_completed():
+                game_result = "completed"
+                running = False
+            elif delivery_game.is_crashed():
+                game_result = "crashed"
+                running = False
+            elif delivery_game.is_timeout:
+                game_result = "timeout"
+                running = False
+
+            screen.fill(BLACK)
+            delivery_game.draw(screen)
+            pygame.display.flip()
+            clock.tick(10)
+
+        # Обработка результата игры
+        if game_result == "completed":
+            self.add_money(order_salary)  # Добавляем деньги за успешную доставку
+            self.energy -= 100  # Снижаем энергию за игру
+            self.set_current_plot_text(f"Вы доставили заказ и получили ${order_salary}")
+        elif game_result in ["crashed", "timeout"]:
+            if game_result == "crashed":
+                self.set_current_plot_text("Вы врезались в препятствие...")
+            elif game_result == "timeout":
+                self.set_current_plot_text("Время вышло... Вы не смогли доставить заказ.")
+            self.energy -= 100  # Наказание за провал
+
+        # Установка времени начала показа сообщения
+        message_start_time = pygame.time.get_ticks()
+
+        # Показываем сообщение дольше
+        while pygame.time.get_ticks() - message_start_time < message_duration:
+            screen.fill(BLACK)
+            if self.current_plot_text:
+                text_surface = MAIN_FONT.render(self.current_plot_text, True, WHITE)
+                screen.blit(text_surface, (
+                    self.screen_size[0] // 2 - text_surface.get_width() // 2,
+                    self.screen_size[1] // 2 - text_surface.get_height() // 2))
+            pygame.display.flip()
+            clock.tick(10)
 
 class WorkManager:
     def __init__(self, screen_size):
@@ -1292,34 +1355,37 @@ class WorkManager:
 
             return order_buttons, None, exit_button
 
+
     def handle_order_click(self, mouse_pos, game):
-        """Обрабатывает клик по заказу и выдает вознаграждение"""
+        """Обрабатывает клик по заказу и выдает вознаграждение или запускает мини-игру"""
         orders = self.orders[self.current_category]
         for i, order in enumerate(orders):
             order_rect = pygame.Rect(50, 50 + i * 100, game.screen_size[0] - 100, 90)
-            if order['salary'] <= 1000:
-                cost = 100
-            if order['salary'] <= 5000 and order['salary'] > 1000:
-                cost = 200
-            if order['salary'] > 5000:
-                cost = 300
-            if order_rect.collidepoint(mouse_pos) and game.energy > cost:
-                # Добавляем деньги игроку
-                game.add_money(order['salary'])
-                game.energy -= cost
-
-                # Удаляем заказ из списка
-                self.orders[self.current_category].remove(order)
-
-                # Добавляем сообщение о выполнении заказа
-                game.set_current_plot_text(
-                    f"Вы выполнили заказ: {order['name']} и получили ${order['salary']}"
-                )
-
-                # Генерируем новый заказ взамен выполненного
-                self.generate_new_order(self.current_category)
-
-                return True
+            if order_rect.collidepoint(mouse_pos):
+                if self.current_category == "Курьерство":
+                    # Проверяем достаточно ли энергии
+                    if game.energy >= 100:  # Фиксированная стоимость энергии для курьерства
+                        game.play_delivery_game(order['salary'])  # Запускаем мини-игру
+                        return True
+                    else:
+                        game.set_current_plot_text("Недостаточно энергии!")
+                        return False
+                else:
+                    # Для других категорий работ
+                    energy_cost = 100 if order['salary'] <= 1000 else \
+                        200 if order['salary'] <= 5000 else 300
+                    if game.energy >= energy_cost:
+                        game.add_money(order['salary'])
+                        game.energy -= energy_cost
+                        self.orders[self.current_category].remove(order)
+                        self.generate_new_order(self.current_category)
+                        game.set_current_plot_text(
+                            f"Вы выполнили заказ: {order['name']} и получили ${order['salary']}"
+                        )
+                        return True
+                    else:
+                        game.set_current_plot_text("Недостаточно энергии!")
+                        return False
         return False
 
     def generate_new_order(self, category):
