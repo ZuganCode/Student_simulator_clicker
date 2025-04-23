@@ -512,47 +512,47 @@ class Game:
         self.shop_items = {
             "Активный заработок": {
                 "Копирайтинг": [
-                    {"name": "Курс по SEO", "price": 500, "desc": "+10% к доходу от копирайтинга", "icon": "seo.png"},
-                    {"name": "Портфолио", "price": 200, "desc": "+5% к доверию заказчиков", "icon": "portfolio.png"}
+                    {"name": "Курс по SEO", "price": 500, "desc": "+10% к доходу от копирайтинга (Требуется 500 энергии)", "icon": "seo.png", "energy_cost": 500},
+                    {"name": "Портфолио", "price": 200, "desc": "+5% к доверию заказчиков (Требуется 300 энергии)", "icon": "portfolio.png", "energy_cost": 300}
                 ],
                 "Дизайн": [
-                    {"name": "Фigma", "price": 800, "desc": "Обучение Figma +15% к скорости работы",
-                     "icon": "figma.png"},
-                    {"name": "Иллюстратор", "price": 1200, "desc": "+20% к качеству работ", "icon": "illustrator.png"}
+                    {"name": "Фigma", "price": 800, "desc": "Обучение Figma +15% к скорости работы  (Требуется 500 энергии)",
+                     "icon": "figma.png", "energy_cost": 500},
+                    {"name": "Иллюстратор", "price": 1200, "desc": "+20% к качеству работ  (Требуется 500 энергии)", "icon": "illustrator.png", "energy_cost": 500}
                 ],
                 "Программирование": [
-                    {"name": "Python курс", "price": 1000, "desc": "+20% к доходу от программирования",
-                     "icon": "python.png"},
-                    {"name": "Git", "price": 300, "desc": "+10% к эффективности", "icon": "git.png"}
+                    {"name": "Python курс", "price": 1000, "desc": "+20% к доходу от программирования  (Требуется 500 энергии)",
+                     "icon": "python.png", "energy_cost": 500},
+                    {"name": "Git", "price": 300, "desc": "+10% к эффективности  (Требуется 400 энергии)", "icon": "git.png", "energy_cost": 400}
                 ]
             },
             "Пассивный заработок": {
                 "Арбитраж": [
-                    {"name": "Нанять сотрудника", "price": 2500, "desc": "+5% от баланса", "icon": "stocks.png"},
+                    {"name": "Нанять сотрудника", "price": 2500, "desc": "+5% от баланса  (Требуется 200 энергии)", "icon": "stocks.png", "energy_cost": 200},
                     # для команды необходимо хотя бы 2
-                    {"name": "Дроповод", "price": 2000, "desc": "+3% от баланса", "icon": "stocks.png"},
+                    {"name": "Дроповод", "price": 2000, "desc": "+3% от баланса  (Требуется 200 энергии)", "icon": "stocks.png", "energy_cost": 200},
                     # для команды необходим хотя бы 1(на 2 человека)
                     {"name": "Мерчант Биржи", "price": 10000, "desc": "+10% от баланса", "icon": "stocks.png"},
-                    {"name": "Обучение связке", "price": 3000, "desc": "+6% от баланса", "icon": "stocks.png"},
+                    {"name": "Обучение связке", "price": 3000, "desc": "+6% от баланса  (Требуется 500 энергии)", "icon": "stocks.png", "energy_cost": 500},
                     {"name": "Увеличить баланс", "price": 1000, "desc": "+1000 к балансу", "icon": "stocks.png"},
                     {"name": "Телефон", "price": 1500, "desc": "+5% от баланса", "icon": "stocks.png"}
                 ],
                 "Обработка трафика": [
-                    {"name": "Нанять сотрудника", "price": 4000, "desc": "+10% от баланса", "icon": "stocks.png"},
+                    {"name": "Нанять сотрудника", "price": 4000, "desc": "+10% от баланса  (Требуется 200 энергии)", "icon": "stocks.png", "energy_cost": 200},
                     # для команды необходимо хотя бы 2
-                    {"name": "Дроповод", "price": 2000, "desc": "+5% от баланса", "icon": "stocks.png"},
+                    {"name": "Дроповод", "price": 2000, "desc": "+5% от баланса  (Требуется 200 энергии)", "icon": "stocks.png", "energy_cost": 200},
                     # для команды необходим хотя бы 1(на 2 человека)
                     {"name": "Телефон", "price": 1500, "desc": "+5% от баланса", "icon": "stocks.png"},
                     {"name": "Увеличить баланс", "price": 1000, "desc": "+1000 к балансу", "icon": "stocks.png"},
                     {"name": "Мерчант Площадки", "price": 10000, "desc": "+5% от баланса", "icon": "stocks.png"}
                 ],
                 "Трейдинг": [
-                    {"name": "Курс 'Понятие рынка'", "price": 2500, "desc": "Высокий риск, возможен ×3", "icon": "futures.png"},
-                    {"name": "Курс 'межбиржевое влияние'", "price": 3000, "desc": "Очень высокий риск, возможен ×4", "icon": "options.png"},
+                    {"name": "Курс 'Понятие рынка'", "price": 2500, "desc": "Высокий риск, возможен ×3  (Требуется 500 энергии)", "icon": "futures.png", "energy_cost": 500},
+                    {"name": "Курс 'межбиржевое влияние'", "price": 3000, "desc": "Очень высокий риск, возможен ×4  (Требуется 500 энергии)", "icon": "options.png", "energy_cost": 500},
                 ]
             },
             "Улучшения": [
-                {"name": "Нормальная еда", "price": 100, "desc": "даёт +20 к максимуму энергии", "icon": "food.png"},
+                {"name": "Нормальная еда", "price": 100, "desc": "даёт +100 к максимуму энергии", "icon": "food.png"},
             ]
         }
         self.current_shop_category = "Активный заработок"
@@ -991,7 +991,6 @@ class Game:
     def set_current_plot_text(self, text):
         """Устанавливает текст и обновляет таймер"""
         self.current_plot_text = text
-        self.message_timer = pygame.time.get_ticks()
 
 
     def check_message_timeout(self):
@@ -1911,11 +1910,15 @@ def handle_mouse_events(mouse_pos, state, game, current_plot_text, settings_butt
                 # Проверяем клики по товарам
                 current_items = items[game.current_shop_subcategory] if game.current_shop_subcategory else []
                 for i, item in enumerate(current_items):
-                    item_rect = pygame.Rect(50, 200 + (i * 40), current_width - 200, 40)
+                    item_rect = pygame.Rect(50, 200 + (i * 80), current_width - 200, 40)
                     if item_rect.collidepoint(mouse_pos):
                         if game.money >= item["price"]:
-                            game.money -= item["price"]
-                            return state, f"Вы купили {item['name']}!"
+                            if game.energy >= item["energy_cost"]:
+                                print(item["energy_cost"])
+                                game.energy -= item["energy_cost"]
+                                game.money -= item["price"]
+                                return state, f"Вы купили {item['name']}!"
+                            return state, "Недостаточно энергии!"
                         return state, "Недостаточно денег!"
 
             # Кнопка выхода из магазина
@@ -1981,12 +1984,17 @@ def draw_shop_screen(screen, game, current_width):
             current_items = items
 
     for i, item in enumerate(current_items):
-        item_rect = pygame.Rect(50, items_start_y + (i * 40),
-                                current_width - 200, 40)
+        item_rect = pygame.Rect(50, items_start_y + (i * 80),
+                                current_width - 200, 60)
         pygame.draw.rect(screen, (50, 50, 80), item_rect)
 
         text_surface = SMALL_FONT.render(item['name'], True, WHITE)
         price_surface = SMALL_FONT.render(f"{item['price']}$", True, YELLOW)
+
+        desc = item.get('desc', '')
+        if desc:
+            desc_surface = SMALL_FONT.render(desc, True, GRAY)
+            screen.blit(desc_surface, (item_rect.x + 10, item_rect.y + 20))  # Позиция под названием
 
         if item['name'] in game.purchased_items:
             purchased_text = SMALL_FONT.render("КУПЛЕНО", True, GREEN)
@@ -2041,21 +2049,28 @@ def handle_shop_events(mouse_pos, game, category_buttons,
             current_items = items
 
         for i, item in enumerate(current_items):
-            item_rect = pygame.Rect(50, 200 + (i * 40),
-                                    game.screen_size[0] - 200, 40)
+            item_rect = pygame.Rect(50, 200 + (i * 80),
+                                    game.screen_size[0] - 200, 60)
             buy_button_rect = pygame.Rect(item_rect.x + item_rect.width - 100,
                                           item_rect.y + 5, 80, 30)
 
             if buy_button_rect.collidepoint(mouse_pos) and \
                     item['name'] not in game.purchased_items:
                 if game.money >= item["price"]:
-                    game.money -= item["price"]
-                    game.purchased_items.add(item['name'])
-                    return None
+                    if game.energy >= item.get("energy_cost", 0):
+                        game.energy -= item["energy_cost"]
+                        game.money -= item["price"]
+                        game.purchased_items.add(item['name'])
+                        name = item['name']
+                        game.set_current_plot_text(f"Вы купили {name}!")
+                        return None
+                    else:
+                        game.set_current_plot_text("Недостаточно энергии!")
+                        return None
                 else:
+                    game.set_current_plot_text("Недостаточно денег!")
                     return None
     return None
-
 
 def draw_state(screen, state, game, current_plot_text, settings_button, settings_icon,
                money_icon, energy_icon, current_width, current_height, prologue, buttons, stat_bg, event, mouse_pos):
