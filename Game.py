@@ -1638,7 +1638,7 @@ class WorkManager:
 
         # Проверяем клики по категориям
         category_x = 50
-        category_y = game.screen_size[1] - 70
+        category_y = game.screen_size[1]/1.1
         button_width = (game.screen_size[0] - 300) // len(self.work_categories)
         button_height = 50
         button_spacing = 10
@@ -1664,21 +1664,19 @@ class WorkManager:
 
                 # Если все требования выполнены, меняем категорию
                 self.current_category = category
-                new_state = "work"
                 break
 
         # Обработка заказов
         if not new_state:
             order_completed = self.handle_order_click(mouse_pos, game)
-            if order_completed:
-                new_state = "work"
 
         # Проверка кнопки выхода
         exit_button_rect = pygame.Rect(game.screen_size[0] - 150, 20, 100, 50)
         if exit_button_rect.collidepoint(mouse_pos):
             new_state = "game"
 
-        return new_state, game.current_plot_text
+        if new_state is not None:
+            return new_state, game.current_plot_text
 
 
 
@@ -3011,6 +3009,7 @@ def main():
         # Проверяем, является ли state кортежем
         if isinstance(state, tuple):
             state = state[0]  # Извлекаем первый элемент, если это кортеж
+
 
         if state.startswith("ending_"):
             ending_type = state.split("_")[1]
