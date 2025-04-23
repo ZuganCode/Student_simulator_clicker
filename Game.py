@@ -1025,8 +1025,8 @@ class Game:
         """
         if self.money >= self.lottery_cost:
             self.add_money(-self.lottery_cost)
-            if random.random() < 0.9:  # Вероятность выигрыша 90%
-                self.lottery_prize = random.randint(200, 100000)
+            if random.random() < 0.5:
+                self.lottery_prize = random.randint(200, 1000)
                 self.add_money(self.lottery_prize)
                 # Устанавливаем сообщение через set_current_plot_text:
                 self.set_current_plot_text(f"Поздравляем! Вы выиграли {self.lottery_prize}")
