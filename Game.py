@@ -738,7 +738,7 @@ class Game:
         current_day = self.event_day
         chances = [1, 15, 30, 75, 100]
 
-        '''if current_day > 5:
+        if current_day > 5:
             current_day = 5  # Ограничение до 5 дней
 
         current_chance = chances[current_day - 1]
@@ -768,7 +768,7 @@ class Game:
         if self.startup_started:
             self.startup_phase += 1
             if self.startup_phase == 5:
-                pass'''
+                pass
 
         self.s_money -= self.money
         self.s_karma -= self.karma
@@ -866,7 +866,7 @@ class Game:
 
         return bg, buttons, text_surface
 
-    def wrap_text(text, font, max_width):
+    def wrap_text(self, text, max_width, font):
         """
         Разбивает текст на строки, чтобы он помещался в заданную ширину.
         Args:
