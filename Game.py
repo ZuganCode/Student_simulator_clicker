@@ -1222,10 +1222,13 @@ class Game:
         if game_result == "completed":
             self.add_money(order_salary)  # Добавляем деньги за успешную доставку
             self.energy -= 100  # Снижаем энергию за игру
-            self.set_current_plot_text(f"Вы доставили заказ и получили ${order_salary}")
+            self.set_current_plot_text(f"Вы доставили заказ и получили {order_salary}$")
         elif game_result in ["crashed", "timeout"]:
             if game_result == "crashed":
-                self.set_current_plot_text("Вы врезались в препятствие...")
+                order_salary = - order_salary
+                order_salary /= 2
+                self.set_current_plot_text(f"Вы повредили заказ и вам полагается штраф {order_salary}$")
+                self.add_money(order_salary)
             elif game_result == "timeout":
                 self.set_current_plot_text("Время вышло... Вы не смогли доставить заказ.")
             self.energy -= 100  # Наказание за провал
@@ -1337,7 +1340,7 @@ class WorkManager:
                 pygame.draw.rect(screen, (50, 80, 50), order_rect)
 
                 name_text = f"{order['name']} — {order['desc']}"
-                salary_text = f"Оплата: ${order['salary']}"
+                salary_text = f"Оплата: {order['salary']}$"
 
                 name_surface = SMALL_FONT.render(name_text, True, WHITE)
                 salary_surface = SMALL_FONT.render(salary_text, True, YELLOW)
@@ -1380,7 +1383,7 @@ class WorkManager:
                         self.orders[self.current_category].remove(order)
                         self.generate_new_order(self.current_category)
                         game.set_current_plot_text(
-                            f"Вы выполнили заказ: {order['name']} и получили ${order['salary']}"
+                            f"Вы выполнили заказ: {order['name']} и получили {order['salary']}$"
                         )
                         return True
                     else:
@@ -1426,10 +1429,42 @@ class WorkManager:
 
         # Отрисовка категорий работ
         category_x = 50
-        category_y = screen.get_height() - 70
+        category_y = screen.get_height() - 100
         button_width = (current_width - 300) // len(self.work_categories)
         button_height = 50
         button_spacing = 10
+
+        day_season_text = MAIN_FONT.render(f"День {game.total_days} ({game.season})", True, WHITE)
+        screen.blit(day_season_text, (50, 10))
+
+
+        try:
+            energy_icon = pygame.image.load('png/energe.png').convert_alpha()
+            energy_icon = pygame.transform.scale(energy_icon, (40, 40))
+        except Exception as e:
+            print(f"Ошибка загрузки energe.png: {e}")
+            energy_icon = pygame.Surface((40, 40))
+            energy_icon.fill(BLUE)
+
+        try:
+            money_icon = pygame.image.load('png/money.png').convert_alpha()
+            money_icon = pygame.transform.scale(money_icon, (40, 40))
+        except Exception as e:
+            print(f"Ошибка загрузки money.png: {e}")
+            money_icon = pygame.Surface((40, 40))
+            money_icon.fill(YELLOW)
+
+        # Деньги: иконка и текст
+        if money_icon:
+            screen.blit(money_icon, (250, 5))
+        money_text = MAIN_FONT.render(f"{game.money}", True, WHITE)
+        screen.blit(money_text, (300, 10))
+
+        # Энергия: иконка и текст
+        if energy_icon:
+            screen.blit(energy_icon, (400, 5))
+        energy_text = MAIN_FONT.render(f"{game.energy}/{game.max_energy}", True, WHITE)
+        screen.blit(energy_text, (450, 10))
 
         for i, category in enumerate(self.work_categories):
             color = GREEN if category == self.current_category else BLUE
@@ -1479,17 +1514,17 @@ class WorkManager:
         orders = self.orders[self.current_category]
         order_buttons = []
         for i, order in enumerate(orders):
-            order_rect = pygame.Rect(50, 50 + i * 100, current_width - 100, 90)
+            order_rect = pygame.Rect(50, 100 + i * 100, current_width - 100, 90)
             pygame.draw.rect(screen, (50, 80, 50), order_rect)
 
             name_text = f"{order['name']} — {order['desc']}"
-            salary_text = f"Оплата: ${order['salary']}"
+            salary_text = f"Оплата: {order['salary']}$"
 
             name_surface = SMALL_FONT.render(name_text, True, WHITE)
             salary_surface = SMALL_FONT.render(salary_text, True, YELLOW)
 
-            screen.blit(name_surface, (60, 60 + i * 100))
-            screen.blit(salary_surface, (60, 80 + i * 100))
+            screen.blit(name_surface, (60, 110 + i * 100))
+            screen.blit(salary_surface, (60, 130 + i * 100))
 
             # Добавляем кнопку "Выполнить"
             complete_button = Button(order_rect.x + order_rect.width - 120,
@@ -1887,7 +1922,7 @@ def draw_shop_screen(screen, game, current_width):
         pygame.draw.rect(screen, (50, 50, 80), item_rect)
 
         text_surface = SMALL_FONT.render(item['name'], True, WHITE)
-        price_surface = SMALL_FONT.render(f"${item['price']}", True, YELLOW)
+        price_surface = SMALL_FONT.render(f"{item['price']}$", True, YELLOW)
 
         if item['name'] in game.purchased_items:
             purchased_text = SMALL_FONT.render("КУПЛЕНО", True, GREEN)
@@ -2135,20 +2170,57 @@ def draw_state(screen, state, game, current_plot_text, settings_button, settings
         draw_exit_confirmation(screen, current_width, buttons["exit_confirmation"])
 
     elif state == "study_menu":
-        draw_study_menu(screen, game, current_width, current_height, buttons["study_menu"])
+        draw_study_menu(screen, game, current_width, current_height, buttons["study_menu"], current_width, current_height)
 
     return state, current_plot_text
 
 
-def draw_study_menu(screen, game, width, height, buttons):
+def draw_study_menu(screen, game, width, height, buttons, current_width, current_height):
     # Полупрозрачный фон
     overlay = pygame.Surface((width, height), pygame.SRCALPHA)
     overlay.fill((0, 0, 0, 128))
-    screen.blit(overlay, (0, 0))
+    screen.blit(game_bg, (0, 0))
+    scaled_game_bg = pygame.transform.scale(game_bg, (current_width, current_height))
+    screen.blit(scaled_game_bg, (0, 0))
+
+    day_season_text = MAIN_FONT.render(f"День {game.total_days} ({game.season})", True, WHITE)
+    screen.blit(day_season_text, (50, 10))
+
+    study_progress = f"Учеба: {game.study_progress}/{game.study_goal}"
+    study_text = MAIN_FONT.render(study_progress, True, WHITE)
+    screen.blit(study_text, (600, 10))
+
+    try:
+        energy_icon = pygame.image.load('png/energe.png').convert_alpha()
+        energy_icon = pygame.transform.scale(energy_icon, (40, 40))
+    except Exception as e:
+        print(f"Ошибка загрузки energe.png: {e}")
+        energy_icon = pygame.Surface((40, 40))
+        energy_icon.fill(BLUE)
+
+    try:
+        money_icon = pygame.image.load('png/money.png').convert_alpha()
+        money_icon = pygame.transform.scale(money_icon, (40, 40))
+    except Exception as e:
+        print(f"Ошибка загрузки money.png: {e}")
+        money_icon = pygame.Surface((40, 40))
+        money_icon.fill(YELLOW)
+
+    # Деньги: иконка и текст
+    if money_icon:
+        screen.blit(money_icon, (250, 5))
+    money_text = MAIN_FONT.render(f"{game.money}", True, WHITE)
+    screen.blit(money_text, (300, 10))
+
+    # Энергия: иконка и текст
+    if energy_icon:
+        screen.blit(energy_icon, (400, 5))
+    energy_text = MAIN_FONT.render(f"{game.energy}/{game.max_energy}", True, WHITE)
+    screen.blit(energy_text, (450, 10))
 
     # Окно меню (центрированное)
-    menu_width = 500
-    menu_height = 300
+    menu_width = 800
+    menu_height = 700
     menu_rect = pygame.Rect(
         (width - menu_width) // 2,
         (height - menu_height) // 2,
@@ -2172,17 +2244,18 @@ def draw_study_menu(screen, game, width, height, buttons):
         screen.blit(text, text_rect)
     else:
         # Кнопки (центрированные по вертикали)
-        button_y = menu_rect.y + 70
+        button_y = menu_rect.y + 100
+        i=0
         for btn in buttons.values():
+            i +=1
             btn.rect.centerx = menu_rect.centerx
             btn.rect.y = button_y
             btn.draw(screen)
-            button_y += 70
+            button_y += 100
+            if i == 3:
+                button_y += 150
 
-    # Кнопка "Назад" всегда видна
-    buttons["back"].rect.centerx = menu_rect.centerx
-    buttons["back"].rect.y = menu_rect.bottom - 15
-    buttons["back"].draw(screen)
+
 
 def draw_monthly_graph(screen, money_history, study_history, rect, game):
     if len(money_history) < 2:
@@ -2322,7 +2395,7 @@ def draw_game_screen(screen, game, current_plot_text, settings_button, settings_
         plot_text = MAIN_FONT.render(current_plot_text, True, WHITE)
         screen.blit(plot_text, (50, 50))  # Размещаем под строкой "День (Сезон)"
 
-    # Статистика
+    '''# Статистика
     stat_y = 100
     stat_lines = [
         f"Стипендия: {game.scholarship}",
@@ -2330,7 +2403,7 @@ def draw_game_screen(screen, game, current_plot_text, settings_button, settings_
     for line in stat_lines:
         stat_text = MAIN_FONT.render(line, True, WHITE)
         screen.blit(stat_text, (50, stat_y))
-        stat_y += 40  # Расстояние между строками
+        stat_y += 40  # Расстояние между строками'''
 
 
     # Отрисовка кнопок
@@ -2783,22 +2856,22 @@ def main():
 
     study_menu_buttons = {
         "lab": Button(
-            0, 0, 400, 50,
-            "Лабораторная (300 энергии)",
+            0, 0, 600, 50,
+            "Лабораторная (300 энергии) + 3 к знаниям",
             BLUE, WHITE
         ),
         "lecture": Button(
-            0, 0, 400, 50,
-            "Лекция (150 энергии)",
+            0, 0, 600, 50,
+            "Лекция (150 энергии) + 1 к знаниям",
             GREEN, WHITE
         ),
         "exam": Button(
-            0, 0, 400, 50,
-            "Экзамен (2000 энергии)",
+            0, 0, 600, 50,
+            "Экзамен (2000 энергии) + 10 к знаниям",
             RED, WHITE
         ),
         "back": Button(
-            0, 0, 400, 30,
+            0, 0, 600, 50,
             "Назад",
             GRAY, BLACK
         )

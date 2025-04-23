@@ -378,14 +378,16 @@ class DeliveryMinigame:
 
         # Если достигнут финиш, показываем сообщение о заработанных деньгах
         if self.completed:
-            result_text = font.render(f"Вы доставили заказ и получили ${self.salary}", True, WHITE)
+            result_text = font.render(f"Вы доставили заказ и получили {self.salary}$", True, WHITE)
             screen.blit(result_text, (
                 self.screen_size[0] // 2 - result_text.get_width() // 2,
                 self.screen_size[1] // 2 - result_text.get_height() // 2))
         # Если произошло столкновение или истечение времени, показываем сообщение об ошибке
         elif self.crashed or self.is_timeout:
             if self.crashed:
-                result_text = font.render("Вы врезались в препятствие...", True, WHITE)
+                self.salary = - self.salary
+                self.salary /= 2
+                result_text = font.render(f"Вы повредили заказ и вам полагается штраф {self.salary}$", True, WHITE)
             else:
                 result_text = font.render("Время вышло...", True, WHITE)
             screen.blit(result_text, (
