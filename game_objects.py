@@ -306,7 +306,7 @@ class DeliveryMinigame:
         self.completed = False
         self.crashed = False  # Столкновение с препятствием
         self.is_timeout = False  # Истечение времени
-        self.time_left = 10  # Время в секундах (например, 60 секунд)
+        self.time_left = 20  # Время в секундах (например, 60 секунд)
         self.start_time = pygame.time.get_ticks()  # Запоминаем время начала игры
 
     def generate_obstacles(self):
@@ -322,16 +322,16 @@ class DeliveryMinigame:
         """Обновляет состояние мини-игры"""
         current_time = pygame.time.get_ticks()
         elapsed_time = (current_time - self.start_time) / 1000  # Прошедшее время в секундах
-        self.time_left = max(0, 10 - elapsed_time)  # Уменьшаем оставшееся время
+        self.time_left = max(0, 20 - elapsed_time)  # Уменьшаем оставшееся время
 
         new_pos = list(self.player_pos)
-        if keys[pygame.K_UP]:
+        if keys[pygame.K_UP] or keys[pygame.K_w]:  # Вверх
             new_pos[1] -= 1
-        elif keys[pygame.K_DOWN]:
+        elif keys[pygame.K_DOWN] or keys[pygame.K_s]:  # Вниз
             new_pos[1] += 1
-        elif keys[pygame.K_LEFT]:
+        elif keys[pygame.K_LEFT] or keys[pygame.K_a]:  # Влево
             new_pos[0] -= 1
-        elif keys[pygame.K_RIGHT]:
+        elif keys[pygame.K_RIGHT] or keys[pygame.K_d]:  # Вправо
             new_pos[0] += 1
 
         new_pos = tuple(new_pos)

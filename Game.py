@@ -1101,7 +1101,9 @@ class Game:
 
             # Добавляем сохранение купленных предметов
             "purchased_items": list(self.purchased_items),
-            "current_month_day": self.current_month_day
+            "current_month_day": self.current_month_day,
+
+            "has_shown_tutorial": self.work_manager.has_shown_tutorial
         }
         with open("save.json", "w") as f:
             json.dump(data, f)
@@ -1173,6 +1175,7 @@ class Game:
                 # Загрузка купленных предметов
                 self.purchased_items = set(data.get("purchased_items", []))
 
+                self.work_manager.has_shown_tutorial = data.get("has_shown_tutorial", False)
 
         except FileNotFoundError:
             print("Сохранение не найдено. Начинаем новую игру.")
@@ -1181,13 +1184,14 @@ class Game:
     def whats_day(self):
         return self.total_days
 
+
     def play_delivery_game(self, order_salary):
         """Мини-игра доставки"""
         delivery_game = DeliveryMinigame(self.screen_size, order_salary)
         clock = pygame.time.Clock()
         running = True
         message_start_time = 0  # Время начала показа сообщения
-        message_duration = 700  # Длительность показа сообщения (5 секунд)
+        message_duration = 2000
         game_result = None  # Результат игры (None, "completed", "crashed", "timeout")
 
         while running:
@@ -1248,12 +1252,69 @@ class Game:
             pygame.display.flip()
             clock.tick(10)
 
+
+    def show_delivery_tutorial(self, screen):
+        """Отображает обучение для мини-игры доставки"""
+        tutorial_running = True
+        clock = pygame.time.Clock()
+
+        # Заливка фона
+        screen.fill(BLACK)
+
+        # Создаем поверхность для текста обучения
+        tutorial_text = [
+            "Правила мини-игры доставки:",
+            "Вы — оранжевый квадрат.",
+            "Ваша задача — добраться до финишной точки (красного квадрата).",
+            "Избегайте препятствия (серые квадраты).",
+            "Управление: стрелки или клавиши WASD.",
+            "Закончите доставку за отведенное время."
+        ]
+
+        font = MAIN_FONT
+        text_height = font.get_height() + 10  # Отступ между строками
+        y_offset = 50  # Начальная позиция по Y
+
+        # Отрисовываем текст обучения
+        for line in tutorial_text:
+            text_surface = font.render(line, True, WHITE)
+            text_rect = text_surface.get_rect(center=(self.screen_size[0] // 2, y_offset))
+            screen.blit(text_surface, text_rect)
+            y_offset += text_height
+
+        # Кнопка "Начать игру"
+        start_button = Button(
+            self.screen_size[0] // 2 - 100,
+            self.screen_size[1] - 100,
+            200,
+            50,
+            "Начать игру",
+            GREEN,
+            WHITE
+        )
+        start_button.draw(screen)
+
+        while tutorial_running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    mouse_pos = pygame.mouse.get_pos()
+                    if start_button.is_clicked(mouse_pos):
+                        tutorial_running = False
+
+            pygame.display.flip()
+            clock.tick(10)
+
+
 class WorkManager:
     def __init__(self, screen_size):
         self.screen_size = screen_size
         self.work_categories = ["Курьерство", "Фриланс", "Трейдинг", "P2P"]
         self.current_category = "Курьерство"
         self.selected_order = None
+        self.has_shown_tutorial = False
 
 
 
@@ -1367,6 +1428,10 @@ class WorkManager:
             order_rect = pygame.Rect(50, 50 + i * 100, game.screen_size[0] - 100, 90)
             if order_rect.collidepoint(mouse_pos):
                 if self.current_category == "Курьерство":
+                    if not self.has_shown_tutorial:
+                        # Показываем обучение только при первом запуске
+                        game.show_delivery_tutorial(screen)
+                        self.has_shown_tutorial = True
                     # Проверяем достаточно ли энергии
                     if game.energy >= 100:  # Фиксированная стоимость энергии для курьерства
                         game.play_delivery_game(order['salary'])  # Запускаем мини-игру
