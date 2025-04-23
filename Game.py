@@ -423,6 +423,7 @@ class Game:
     """
     def __init__(self):
         self.failed_exam = False
+        self.start_stat_time = None
         self.illegal_activity_score = 0
         self.last_scholarship_amount = None
         self.s_money = 0
@@ -2013,6 +2014,12 @@ def draw_state(screen, state, game, current_plot_text, settings_button, settings
         buttons (dict): Словарь всех кнопок
     """
     if state == "end_of_day_stat":
+        current_time = pygame.time.get_ticks()
+
+        if game.start_stat_time is None:
+            game.start_stat_time = current_time
+        elapsed_time = current_time - game.start_stat_time
+
         current_width, current_height = pygame.display.get_surface().get_size()  # Получаем текущие размеры экрана
         current_screen_size = pygame.display.get_surface().get_size()
 
@@ -2047,28 +2054,39 @@ def draw_state(screen, state, game, current_plot_text, settings_button, settings
             screen.blit(text, (current_width / 5, y))
             y += 60
 
-        continue_button = Button(
-            x=current_width // 1.3,  # Центрируем по горизонтали
-            y=current_height - 80,  # 80 пикселей от нижнего края
-            width=200,
-            height=50,
-            text="Продолжить",
-            color=YELLOW,
-            text_color=BLACK
-        )
-        continue_button.draw(screen)
-        mouse_pos = pygame.mouse.get_pos()
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if continue_button.is_clicked(mouse_pos):
-                game.process_day()
-                game.start_day()
-                return "game", current_plot_text  # Возвращаем новое состояние
+        if elapsed_time >= 500:
+            # Создаем кнопку и отрисовываем её
+            continue_button = Button(
+                x=current_width // 1.3,
+                y=current_height - 80,
+                width=200,
+                height=50,
+                text="Продолжить",
+                color=YELLOW,
+                text_color=BLACK
+            )
+            continue_button.draw(screen)
+
+            mouse_pos = pygame.mouse.get_pos()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if continue_button.is_clicked(mouse_pos):
+                    game.process_day()
+                    game.start_day()
+                    game.start_stat_time = None
+                    return "game", current_plot_text  # Возвращаем новое состояние
 
 
     elif state == "end_of_month_stat":
         current_width, current_height = pygame.display.get_surface().get_size()
         current_screen_size = pygame.display.get_surface().get_size()
 
+        current_time = pygame.time.get_ticks()
+
+        # Устанавливаем время при первом входе в состояние
+        if game.start_stat_time is None:
+            game.start_stat_time = current_time
+
+        elapsed_time = current_time - game.start_stat_time
 
         window_width = int(current_width)
         window_height = int(current_height)
@@ -2107,23 +2125,27 @@ def draw_state(screen, state, game, current_plot_text, settings_button, settings
         graph_rect = pygame.Rect(current_width / 1.9, current_height / 5, current_width / 4.8, current_height / 2)
         draw_monthly_graph(screen, game.monthly_money_history, game.monthly_study_history, graph_rect, game)
 
-        continue_button = Button(
-            x=current_width // 1.3,
-            y=current_height - 80,
-            width=200,
-            height=50,
-            text="Продолжить",
-            color=YELLOW,
-            text_color=BLACK
-        )
-        continue_button.draw(screen)
-        mouse_pos = pygame.mouse.get_pos()
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if continue_button.is_clicked(mouse_pos):
-                game.monthly_money_change = 0
-                game.monthly_karma_change = 0
-                game.monthly_study_progress = 0.0
-                return "game", current_plot_text  # Возвращаем новое состояние
+        if elapsed_time >= 500:
+            # Создаем кнопку и отрисовываем её
+            continue_button = Button(
+                x=current_width // 1.3,
+                y=current_height - 80,
+                width=200,
+                height=50,
+                text="Продолжить",
+                color=YELLOW,
+                text_color=BLACK
+            )
+            continue_button.draw(screen)
+
+            # Проверяем клик по кнопке
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if continue_button.is_clicked(mouse_pos):
+                    game.monthly_money_change = 0
+                    game.monthly_karma_change = 0
+                    game.monthly_study_progress = 0.0
+                    game.start_stat_time = None  # Сбрасываем время
+                    return "game", current_plot_text
 
     elif state == "main_menu":
         draw_main_menu(screen, buttons["main_menu"])
@@ -2171,6 +2193,9 @@ def draw_state(screen, state, game, current_plot_text, settings_button, settings
 
     elif state == "study_menu":
         draw_study_menu(screen, game, current_width, current_height, buttons["study_menu"], current_width, current_height)
+
+    if state not in ["end_of_day_stat", "end_of_month_stat"]:
+        game.start_stat_time = None
 
     return state, current_plot_text
 
