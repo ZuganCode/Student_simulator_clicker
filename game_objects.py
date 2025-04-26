@@ -405,3 +405,154 @@ class DeliveryMinigame:
     def is_timeout(self):
         """Возвращает True, если время вышло"""
         return self.is_timeout
+
+
+class FreelanceCodeMinigame:
+    def __init__(self, screen_size, salary):
+        self.screen_size = screen_size
+        self.cell_size = 60  # Размер каждой ячейки с фрагментом кода
+        self.grid_width = screen_size[0] // self.cell_size
+        self.grid_height = screen_size[1] // self.cell_size
+        self.code_fragments = []
+        self.player_fragments = []
+        self.generate_code_fragments()
+        self.salary = salary
+        self.completed = False
+        self.failed = False
+        self.time_left = 30  # Время в секундах
+        self.selected_block_index = 0
+        self.is_block_confirmed = False
+
+    def generate_code_fragments(self):
+        """Генерирует правильные фрагменты кода"""
+        fragment_types = [
+            {"type": "def_function", "text": "def function():", "color": BLUE},
+            {"type": "if_statement", "text": "if condition:", "color": GREEN},
+            {"type": "for_loop", "text": "for i in range(n):", "color": RED},
+            {"type": "return_statement", "text": "return result", "color": YELLOW},
+            {"type": "print_statement", "text": "print('Success')", "color": PURPLE}
+        ]
+        # Позиции блоков игрока
+        player_positions = [fragment["pos"] for fragment in self.player_fragments]
+
+        for i, fragment in enumerate(fragment_types):
+            while True:
+                pos = (random.randint(0, self.grid_width - 1), random.randint(0, self.grid_height - 1))
+                if pos not in player_positions and pos not in [f["pos"] for f in self.code_fragments]:
+                    self.code_fragments.append({"type": fragment["type"], "text": fragment["text"], "color": fragment["color"], "pos": pos})
+                    break
+
+    def update(self, keys, mouse_pos, events):
+        """Обновляет состояние мини-игры"""
+        current_time = pygame.time.get_ticks()
+        elapsed_time = (current_time - self.start_time) / 1000  # Прошедшее время в секундах
+        self.time_left = max(0, 30 - elapsed_time)
+
+        # Обработка событий нажатий (а не состояния клавиш!)
+        for event in events:
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    if not self.is_block_confirmed:
+                        # Подтверждение выбора
+                        self.is_block_confirmed = True
+                    else:
+                        # Отмена выбора
+                        self.is_block_confirmed = False
+
+        # Выбор блока (стрелки вверх/вниз или W/S)
+        if not self.is_block_confirmed:
+            if keys[pygame.K_UP] or keys[pygame.K_w]:
+                self.selected_block_index = max(0, self.selected_block_index - 1)
+            elif keys[pygame.K_DOWN] or keys[pygame.K_s]:
+                self.selected_block_index = min(len(self.player_fragments) - 1, self.selected_block_index + 1)
+
+        # Перемещение выбранного блока (стрелки или WASD)
+        if self.is_block_confirmed:
+            selected_block = self.player_fragments[self.selected_block_index]
+            if keys[pygame.K_LEFT] or keys[pygame.K_a]:
+                selected_block["pos"] = (max(0, selected_block["pos"][0] - 1), selected_block["pos"][1])
+            elif keys[pygame.K_RIGHT] or keys[pygame.K_d]:
+                selected_block["pos"] = (min(self.grid_width - 1, selected_block["pos"][0] + 1), selected_block["pos"][1])
+            elif keys[pygame.K_UP] or keys[pygame.K_w]:
+                selected_block["pos"] = (selected_block["pos"][0], max(0, selected_block["pos"][1] - 1))
+            elif keys[pygame.K_DOWN] or keys[pygame.K_s]:
+                selected_block["pos"] = (selected_block["pos"][0], min(self.grid_height - 1, selected_block["pos"][1] + 1))
+
+        # Проверяем завершение сборки кода
+        if self.check_completion():
+            self.completed = True
+
+        if self.time_left <= 0:
+            self.failed = True
+
+    def check_completion(self):
+        """Проверяет, правильно ли собран код"""
+        sorted_player_fragments = sorted(self.player_fragments, key=lambda x: x["pos"][1])
+        sorted_code_fragments = sorted(self.code_fragments, key=lambda x: x["pos"][1])
+
+        for player_fragment, code_fragment in zip(sorted_player_fragments, sorted_code_fragments):
+            if player_fragment["type"] != code_fragment["type"] or player_fragment["pos"] != code_fragment["pos"]:
+                return False
+        return True
+
+    def draw(self, screen):
+        """Отрисовывает мини-игру на экране"""
+        screen.fill(BLACK)
+
+        # Рисуем сетку
+        for x in range(self.grid_width):
+            for y in range(self.grid_height):
+                pygame.draw.rect(screen, WHITE, (x * self.cell_size, y * self.cell_size, self.cell_size, self.cell_size), 1)
+
+        # Рисуем правильные фрагменты кода (прозрачно)
+        for fragment in self.code_fragments:
+            fragment_rect = pygame.Rect(
+                fragment["pos"][0] * self.cell_size,
+                fragment["pos"][1] * self.cell_size,
+                self.cell_size,
+                self.cell_size
+            )
+            # Создаем поверхность с альфа-каналом для прозрачности
+            transparent_surface = pygame.Surface((self.cell_size, self.cell_size), pygame.SRCALPHA)
+            transparent_surface.fill(fragment["color"] + (100,))  # Добавляем альфа-канал (прозрачность)
+
+            # Отрисовываем поверхность на экране
+            screen.blit(transparent_surface, fragment_rect.topleft)
+
+        # Рисуем блоки игрока
+        for i, fragment in enumerate(self.player_fragments):
+            fragment_rect = pygame.Rect(
+                fragment["pos"][0] * self.cell_size,
+                fragment["pos"][1] * self.cell_size,
+                self.cell_size,
+                self.cell_size
+            )
+
+            # Выделение активного блока
+            if i == self.selected_block_index and not self.is_block_confirmed:
+                border_color = GRAY  # Серая граница для выбранного, но не подтвержденного блока
+            elif i == self.selected_block_index and self.is_block_confirmed:
+                border_color = (0, 255, 0)  # Ярко зеленая граница для подтвержденного блока
+            else:
+                border_color = BLACK  # Обычная граница для остальных блоков
+
+            pygame.draw.rect(screen, fragment["color"], fragment_rect)
+            pygame.draw.rect(screen, border_color, fragment_rect, 3)  # Граница выделенного блока
+
+        # Отображаем оставшееся время
+        font = pygame.font.Font(None, 36)
+        time_text = font.render(f"Time left: {int(self.time_left)}", True, WHITE)
+        screen.blit(time_text, (10, 10))
+
+    def is_completed(self):
+        """Возвращает True, если мини-игра завершена успешно"""
+        return self.completed
+
+    def is_failed(self):
+        """Возвращает True, если мини-игра провалена"""
+        return self.failed
+
+    def start_game(self):
+        """Начинает игру, копируя фрагменты кода для редактирования"""
+        self.player_fragments = [{"type": frag["type"], "text": frag["text"], "color": frag["color"], "pos": (0, i)} for i, frag in enumerate(self.code_fragments)]
+        self.start_time = pygame.time.get_ticks()

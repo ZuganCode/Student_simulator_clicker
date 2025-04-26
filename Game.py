@@ -3,7 +3,7 @@ import random
 import sys
 import os
 from data import PLOT_EVENTS, ENDING_ARMY, ENDING_PRISON, ENDING_BORING_JOB, ENDING_DREAM, SUMMER_1, SUMMER_2, SUMMER_3, HNY, PROLOGUE_DATA
-from game_objects import Event, Ending, DeliveryMinigame
+from game_objects import Event, Ending, DeliveryMinigame, FreelanceCodeMinigame
 os.environ['SDL_VIDEO_CENTERED'] = '1'
 import pygame
 from pygame.locals import RESIZABLE
@@ -1102,7 +1102,8 @@ class Game:
             "purchased_items": list(self.purchased_items),
             "current_month_day": self.current_month_day,
 
-            "has_shown_tutorial": self.work_manager.has_shown_tutorial
+            "has_shown_tutorial": self.work_manager.has_shown_tutorial,
+            "has_shown_tutorial_f": self.work_manager.has_shown_tutorial_f
         }
         with open("save.json", "w") as f:
             json.dump(data, f)
@@ -1175,6 +1176,7 @@ class Game:
                 self.purchased_items = set(data.get("purchased_items", []))
 
                 self.work_manager.has_shown_tutorial = data.get("has_shown_tutorial", False)
+                self.work_manager.has_shown_tutorial_f = data.get("has_shown_tutorial_f", False)
 
         except FileNotFoundError:
             print("Сохранение не найдено. Начинаем новую игру.")
@@ -1190,7 +1192,7 @@ class Game:
         clock = pygame.time.Clock()
         running = True
         message_start_time = 0  # Время начала показа сообщения
-        message_duration = 2000
+        message_duration = 3000
         game_result = None  # Результат игры (None, "completed", "crashed", "timeout")
 
         while running:
@@ -1306,6 +1308,135 @@ class Game:
             pygame.display.flip()
             clock.tick(10)
 
+    def show_freelance_tutorial(self, screen):
+        """Отображает обучение для мини-игры Фриланса"""
+        tutorial_running = True
+        clock = pygame.time.Clock()
+
+        # Заливка фона
+        screen.fill(BLACK)
+
+        # Создаем поверхность для текста обучения
+        tutorial_text = [
+            "Правила мини-игры Фриланса:",
+            "Разместите все блоки на правильных позициях, чтобы завершить заказ.",
+            "Блоки можно выбирать в помощью стрелок вверх/вниз или W/S.",
+            "Подтверждать выбор или размещение блока можно нажатием SPACE.",
+            "Блоки кода можно перемещать с помощью стрелок или клавиш WASD.",
+            "У вас есть ограниченное время для выполнения задания."
+        ]
+
+        font = MAIN_FONT
+        text_height = font.get_height() + 10  # Отступ между строками
+        y_offset = 50  # Начальная позиция по Y
+
+        # Отрисовываем текст обучения
+        for line in tutorial_text:
+            text_surface = font.render(line, True, WHITE)
+            text_rect = text_surface.get_rect(center=(self.screen_size[0] // 2, y_offset))
+            screen.blit(text_surface, text_rect)
+            y_offset += text_height
+
+        # Кнопка "Начать игру"
+        start_button = Button(
+            self.screen_size[0] // 2 - 100,
+            self.screen_size[1] - 100,
+            200,
+            50,
+            "Начать игру",
+            GREEN,
+            WHITE
+        )
+        start_button.draw(screen)
+
+        # Основной цикл туториала
+        while tutorial_running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    mouse_pos = pygame.mouse.get_pos()
+                    if start_button.is_clicked(mouse_pos):
+                        tutorial_running = False  # Завершаем туториал
+
+            pygame.display.flip()
+            clock.tick(10)
+
+    def play_freelance_game(self, order_salary):
+        """Мини-игра Фриланса"""
+        # Проверяем, нужно ли показать обучение
+        if not self.work_manager.has_shown_tutorial_f:
+            self.show_freelance_tutorial(screen)
+            self.work_manager.has_shown_tutorial_f = True
+
+        # Вычисляем energy_cost на основе зарплаты
+        energy_cost = (
+            100 if order_salary <= 1000 else
+            200 if order_salary <= 5000 else 300
+        )
+
+        # Проверяем достаточно ли энергии перед запуском мини-игры
+        if self.energy < energy_cost:
+            self.set_current_plot_text("Недостаточно энергии!")
+            return
+        freelance_game = FreelanceCodeMinigame(self.screen_size, order_salary)
+        freelance_game.start_game()
+        clock = pygame.time.Clock()
+        running = True
+        message_start_time = 0  # Время начала показа сообщения
+        message_duration = 3000
+
+        while running:
+            events = pygame.event.get()
+            for event in events:
+                if event.type == pygame.QUIT:
+                    running = False
+                    break
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        running = False
+                        break
+
+            keys = pygame.key.get_pressed()
+            mouse_pos = pygame.mouse.get_pos()
+
+            freelance_game.update(keys, mouse_pos, events)
+
+            if freelance_game.is_completed() or freelance_game.is_failed():
+                running = False
+
+            screen.fill(BLACK)
+            freelance_game.draw(screen)
+            pygame.display.flip()
+            clock.tick(10)
+
+        # Обработка результата игры
+        if freelance_game.is_completed():
+            self.add_money(order_salary)  # Добавляем деньги за успешное выполнение
+            self.energy -= energy_cost  # Снижаем энергию за игру
+            self.set_current_plot_text(f"Вы выполнили заказ и получили {order_salary}$")
+        elif freelance_game.is_failed():
+            order_salary = - order_salary
+            order_salary /= 2
+            self.set_current_plot_text(f"Время вышло... Вы не смогли завершить проект и вам полагается штраф {order_salary}$")
+            self.energy -= energy_cost  # Вычитаем энергию даже при провале
+            self.add_money(order_salary)
+
+        # Установка времени начала показа сообщения
+        message_start_time = pygame.time.get_ticks()
+
+        # Показываем сообщение дольше
+        while pygame.time.get_ticks() - message_start_time < message_duration:
+            screen.fill(BLACK)
+            if self.current_plot_text:
+                text_surface = MAIN_FONT.render(self.current_plot_text, True, WHITE)
+                screen.blit(text_surface, (
+                    self.screen_size[0] // 2 - text_surface.get_width() // 2,
+                    self.screen_size[1] // 2 - text_surface.get_height() // 2))
+            pygame.display.flip()
+            clock.tick(10)
+
 
 class WorkManager:
     def __init__(self, screen_size):
@@ -1314,6 +1445,7 @@ class WorkManager:
         self.current_category = "Курьерство"
         self.selected_order = None
         self.has_shown_tutorial = False
+        self.has_shown_tutorial_f = False
 
 
 
@@ -1438,6 +1570,8 @@ class WorkManager:
                     else:
                         game.set_current_plot_text("Недостаточно энергии!")
                         return False
+                elif self.current_category == "Фриланс":
+                    game.play_freelance_game(order['salary'])  # Запускаем мини-игру Фриланса
                 else:
                     # Для других категорий работ
                     energy_cost = 100 if order['salary'] <= 1000 else \
