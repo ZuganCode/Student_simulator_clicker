@@ -356,7 +356,7 @@ class DeliveryMinigame:
 
     def draw(self, screen):
         """Отрисовывает мини-игру на экране"""
-        screen.fill((30, 60, 30))
+        screen.fill((43, 45, 48))
 
         # Рисуем препятствия
         for obstacle in self.obstacles:
@@ -364,11 +364,11 @@ class DeliveryMinigame:
                 obstacle[0] * self.cell_size, obstacle[1] * self.cell_size, self.cell_size, self.cell_size))
 
         # Рисуем игрока
-        pygame.draw.rect(screen, (255, 165, 0), (
+        pygame.draw.rect(screen, (102, 170, 111), (
             self.player_pos[0] * self.cell_size, self.player_pos[1] * self.cell_size, self.cell_size, self.cell_size))
 
         # Рисуем финиш
-        pygame.draw.rect(screen, RED, (
+        pygame.draw.rect(screen, (219, 92, 92), (
             self.finish_pos[0] * self.cell_size, self.finish_pos[1] * self.cell_size, self.cell_size, self.cell_size))
 
         # Отображаем оставшееся время
@@ -556,3 +556,167 @@ class FreelanceCodeMinigame:
         """Начинает игру, копируя фрагменты кода для редактирования"""
         self.player_fragments = [{"type": frag["type"], "text": frag["text"], "color": frag["color"], "pos": (0, i)} for i, frag in enumerate(self.code_fragments)]
         self.start_time = pygame.time.get_ticks()
+
+
+class TradingMinigame:
+    def __init__(self, screen_size, salary):
+        self.screen_size = screen_size
+        self.salary = salary
+        self.price_history = self.generate_stock_data()
+        self.current_step = 0
+        self.max_steps = len(self.price_history) - 1
+        self.player_balance = 1000  # Начальный баланс
+        self.initial_balance = 1000  # Запоминаем начальный баланс
+        self.player_shares = 0
+        self.cell_size = 40  # Размер ячейки для графика
+        self.grid_width = screen_size[0] // self.cell_size
+        self.grid_height = screen_size[1] // self.cell_size
+        self.time_left = 35  # Время в секундах
+        self.start_time = pygame.time.get_ticks()
+        self.failed = False
+        self.completed = False
+
+        # Параметры анимации графика
+        self.graph_reveal_index = 0
+        self.graph_reveal_speed = 2  # Скорость построения (точек в секунду)
+        self.graph_reveal_timer = pygame.time.get_ticks()
+
+        # Фиксированный диапазон цен для всего графика
+        self.max_price = max(self.price_history)
+        self.min_price = min(self.price_history)
+        self.price_range = self.max_price - self.min_price
+
+        button_width = 100
+        button_height = 50
+        button_y = self.screen_size[1] - 100
+
+        # Создание кнопок в конструкторе
+        from Game import Button
+        self.buy_button = Button(x=self.screen_size[0] // 2 - 150, y=button_y, width=button_width, height=button_height, text="Купить", color=GREEN, text_color=WHITE)
+        self.sell_button = Button(x=self.screen_size[0] // 2 + 50, y=button_y, width=button_width, height=button_height, text="Продать", color=RED, text_color=WHITE)
+
+    def generate_stock_data(self):
+        """Генерирует данные для графика цен"""
+        price_history = [100]  # Начальная цена акции
+        for _ in range(60):  # 60 временных периодов
+            volatility = random.uniform(0.5, 2.0)
+            change = random.gauss(0, volatility)
+            new_price = max(50, price_history[-1] + change)
+            price_history.append(new_price)
+        return price_history
+
+    def update(self, keys):
+        """Обновляет состояние мини-игры"""
+        current_time = pygame.time.get_ticks()
+        elapsed_time = (current_time - self.start_time) / 1000
+        self.time_left = max(0, 35 - elapsed_time)
+
+        # Обновление индекса раскрытия графика
+        if self.graph_reveal_index < len(self.price_history):
+            time_since_last_reveal = current_time - self.graph_reveal_timer
+            if time_since_last_reveal > 1000 / self.graph_reveal_speed:
+                self.graph_reveal_index += 1
+                self.graph_reveal_timer = current_time
+
+        # Переход к следующему шагу графика
+        if self.current_step < self.graph_reveal_index - 1:
+            self.current_step += 1
+
+            # Проверяем завершение игры
+        if self.time_left <= 0:
+            self.end_game()
+
+    def handle_event(self, event):
+        """Обрабатывает действия игрока (покупка/продажа акций)"""
+        if self.graph_reveal_index == 0:
+            return  # Ждем появления первой цены
+
+        current_price = self.price_history[self.current_step]
+        mouse_pos = pygame.mouse.get_pos()
+
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if self.buy_button.is_clicked(mouse_pos):
+                if self.player_balance >= current_price:
+                    self.player_balance -= current_price
+                    self.player_shares += 1
+            elif self.sell_button.is_clicked(mouse_pos):
+                if self.player_shares > 0:
+                    self.player_balance += current_price
+                    self.player_shares -= 1
+
+    def end_game(self):
+        """Завершает игру и подсчитывает результат"""
+        if self.player_balance > self.initial_balance:
+            self.completed = True
+        else:
+            self.failed = True
+
+    def draw(self, screen):
+        """Отрисовывает мини-игру на экране"""
+        screen.fill((30, 31, 34))
+
+        # Отрисовка графика цен
+        graph_width = self.screen_size[0] - 300
+        graph_height = self.screen_size[1] - 300
+        graph_surface = pygame.Surface((graph_width, graph_height))
+        graph_surface.fill((40, 40, 40))
+
+        # Рисуем сетку
+        grid_color = (80, 80, 80)
+        num_vertical_lines = 11  # Количество вертикальных линий
+        num_horizontal_lines = 11  # Количество горизонтальных линий
+
+        # Рисуем вертикальные линии
+        for x in range(0, graph_width, graph_width // num_vertical_lines):
+            pygame.draw.line(graph_surface, grid_color, (x, 0), (x, graph_height), 1)
+
+        # Рисуем горизонтальные линии
+        for y in range(0, graph_height, graph_height // num_horizontal_lines):
+            pygame.draw.line(graph_surface, grid_color, (0, y), (graph_width, y), 1)
+
+        # Получаем видимые данные графика
+        visible_data = self.price_history[:self.graph_reveal_index]
+        if visible_data:
+            for i in range(1, len(visible_data)):
+                x1 = (i - 1) * (graph_width / len(self.price_history))
+                y1 = graph_height - ((visible_data[i - 1] - self.min_price) / self.price_range) * graph_height
+                x2 = i * (graph_width / len(self.price_history))
+                y2 = graph_height - ((visible_data[i] - self.min_price) / self.price_range) * graph_height
+
+                pygame.draw.line(graph_surface, GREEN if visible_data[i] > visible_data[i - 1] else RED, (x1, y1), (x2, y2), 2)
+
+        screen.blit(graph_surface, (150, 150))  # Изменили позицию графика
+
+        # Отображение интерфейса
+        font = pygame.font.Font(None, 36)
+
+        # Текущая цена
+        if self.graph_reveal_index > 0:
+            current_price = self.price_history[self.current_step]
+            price_text = font.render(f"Цена: {current_price:.2f}", True, WHITE)
+            screen.blit(price_text, (10, 10))
+
+        # Баланс игрока
+        balance_text = font.render(f"Баланс: {self.player_balance:.2f}", True, WHITE)
+        screen.blit(balance_text, (10, 50))
+
+        # Количество акций
+        shares_text = font.render(f"Акции: {self.player_shares}", True, WHITE)
+        screen.blit(shares_text, (10, 90))
+
+        # Время
+        time_text = font.render(f"Время: {int(self.time_left)}", True, WHITE)
+        screen.blit(time_text, (self.screen_size[0] - 150, 10))
+
+        # Отрисовка кнопок
+        self.buy_button.draw(screen)
+        self.sell_button.draw(screen)
+
+
+    def is_completed(self):
+        """Проверяет, успешно ли завершена мини-игра"""
+        return self.completed
+
+    def is_failed(self):
+        """Проверяет, провалена ли мини-игра"""
+        return self.failed
