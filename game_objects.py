@@ -293,7 +293,7 @@ class Event:
 
 
 class DeliveryMinigame:
-    def __init__(self, screen_size, salary):
+    def __init__(self, screen_size):
         self.screen_size = screen_size
         self.cell_size = 40
         self.grid_width = screen_size[0] // self.cell_size
@@ -302,11 +302,10 @@ class DeliveryMinigame:
         self.finish_pos = (random.randint(0, self.grid_width - 1), random.randint(0, self.grid_height - 1))
         self.obstacles = []
         self.generate_obstacles()
-        self.salary = salary
         self.completed = False
         self.crashed = False  # Столкновение с препятствием
         self.is_timeout = False  # Истечение времени
-        self.time_left = 20  # Время в секундах (например, 60 секунд)
+        self.time_left = 20  # Время в секундах
         self.start_time = pygame.time.get_ticks()  # Запоминаем время начала игры
 
     def generate_obstacles(self):
@@ -377,7 +376,7 @@ class DeliveryMinigame:
         screen.blit(time_text, (10, 10))
 
         # Если достигнут финиш, показываем сообщение о заработанных деньгах
-        if self.completed:
+        """if self.completed:
             result_text = font.render(f"Вы доставили заказ и получили {self.salary}$", True, WHITE)
             screen.blit(result_text, (
                 self.screen_size[0] // 2 - result_text.get_width() // 2,
@@ -392,7 +391,7 @@ class DeliveryMinigame:
                 result_text = font.render("Время вышло...", True, WHITE)
             screen.blit(result_text, (
                 self.screen_size[0] // 2 - result_text.get_width() // 2,
-                self.screen_size[1] // 2 - result_text.get_height() // 2))
+                self.screen_size[1] // 2 - result_text.get_height() // 2))"""
 
     def is_completed(self):
         """Возвращает True, если мини-игра завершена успешно"""
@@ -408,7 +407,7 @@ class DeliveryMinigame:
 
 
 class FreelanceCodeMinigame:
-    def __init__(self, screen_size, salary):
+    def __init__(self, screen_size):
         self.screen_size = screen_size
         self.cell_size = 60  # Размер каждой ячейки с фрагментом кода
         self.grid_width = screen_size[0] // self.cell_size
@@ -416,7 +415,6 @@ class FreelanceCodeMinigame:
         self.code_fragments = []
         self.player_fragments = []
         self.generate_code_fragments()
-        self.salary = salary
         self.completed = False
         self.failed = False
         self.time_left = 30  # Время в секундах
@@ -445,10 +443,10 @@ class FreelanceCodeMinigame:
     def update(self, keys, mouse_pos, events):
         """Обновляет состояние мини-игры"""
         current_time = pygame.time.get_ticks()
-        elapsed_time = (current_time - self.start_time) / 1000  # Прошедшее время в секундах
+        elapsed_time = (current_time - self.start_time) / 1000
         self.time_left = max(0, 30 - elapsed_time)
 
-        # Обработка событий нажатий (а не состояния клавиш!)
+        # Обработка событий нажатий
         for event in events:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
@@ -559,9 +557,8 @@ class FreelanceCodeMinigame:
 
 
 class TradingMinigame:
-    def __init__(self, screen_size, salary):
+    def __init__(self, screen_size):
         self.screen_size = screen_size
-        self.salary = salary
         self.price_history = self.generate_stock_data()
         self.current_step = 0
         self.max_steps = len(self.price_history) - 1
@@ -590,7 +587,6 @@ class TradingMinigame:
         button_height = 50
         button_y = self.screen_size[1] - 100
 
-        # Создание кнопок в конструкторе
         from Game import Button
         self.buy_button = Button(x=self.screen_size[0] // 2 - 150, y=button_y, width=button_width, height=button_height, text="Купить", color=GREEN, text_color=WHITE)
         self.sell_button = Button(x=self.screen_size[0] // 2 + 50, y=button_y, width=button_width, height=button_height, text="Продать", color=RED, text_color=WHITE)
@@ -685,7 +681,7 @@ class TradingMinigame:
 
                 pygame.draw.line(graph_surface, GREEN if visible_data[i] > visible_data[i - 1] else RED, (x1, y1), (x2, y2), 2)
 
-        screen.blit(graph_surface, (150, 150))  # Изменили позицию графика
+        screen.blit(graph_surface, (150, 150))
 
         # Отображение интерфейса
         font = pygame.font.Font(None, 36)
@@ -719,4 +715,261 @@ class TradingMinigame:
 
     def is_failed(self):
         """Проверяет, провалена ли мини-игра"""
+        return self.failed
+
+
+class P2PMinigame:
+    def __init__(self, screen_size, Button):
+        self.screen_size = screen_size
+        self.Button = Button
+        self.documents = [self.generate_document() for _ in range(5)]
+        self.current_document_index = 0
+        self.lives = 3
+        self.completed = False
+        self.failed = False
+
+        # Область подписи
+        self.drawing_area = pygame.Rect(0, 0, 200, 100)  # Размер области подписи
+
+        # Центрирование области
+        self.drawing_area.x = (screen_size[0] - self.drawing_area.width) // 2
+        self.drawing_area.y = (screen_size[1] - self.drawing_area.height) // 2 + 150
+
+        # Поверхность для подписи
+        self.signature_surface = pygame.Surface((self.drawing_area.width, self.drawing_area.height))
+        self.signature_surface.fill(WHITE)
+
+        self.is_drawing = False
+        self.last_pos = None
+        self.signature_drawn = False  # Флаг — была ли подпись сделана
+
+        # Предупреждение о подписи
+        self.show_signature_warning = False
+        self.warning_timer = 0
+        self.warning_duration = 2000
+
+        # Сообщение об ошибке
+        self.show_error_message = False
+        self.error_start_time = 0
+        self.error_duration = 2000
+
+        # Кнопки
+        button_width = 100
+        button_height = 50
+        button_y = self.screen_size[1] - 100
+
+        self.approve_button = self.Button(
+            x=self.screen_size[0] // 2 - 150,
+            y=button_y,
+            width=button_width,
+            height=button_height,
+            text="Одобрить",
+            color=GREEN,
+            text_color=WHITE
+        )
+        self.reject_button = self.Button(
+            x=self.screen_size[0] // 2 + 50,
+            y=button_y,
+            width=button_width,
+            height=button_height,
+            text="Отклонить",
+            color=RED,
+            text_color=WHITE
+        )
+
+    def generate_document(self):
+        """Генерирует документ с данными о сделке"""
+        trust_rating = random.randint(1, 5)  # Рейтинг доверия от 1 до 5
+
+        # Определяем, выгодна ли сделка на основе рейтинга
+        if trust_rating <= 2:
+            is_profitable = False  # Низкий рейтинг → сделка невыгодна
+        elif trust_rating == 3:
+            is_profitable = random.random() < 0.5  # Средний рейтинг → 50% шанс на успех
+        else:
+            is_profitable = True  # Высокий рейтинг → сделка выгодна
+
+        risk_level = "Низкий" if trust_rating >= 4 else "Средний" if trust_rating == 3 else "Высокий"
+
+        return {
+            "client_name": random.choice(["Алексей", "Мария", "Иван", "Екатерина", "Дмитрий"]),
+            "deal_type": random.choice(["Обмен валют", "Микрозайм", "Гарантия"]),
+            "amount": random.randint(100, 1000),
+            "trust_rating": trust_rating,
+            "risk_level": risk_level,
+            "region": random.choice(["Россия", "США", "Китай", "Бразилия", "Индия"]),
+            "successful_deals": random.randint(0, 50),
+            "failed_deals": random.randint(0, 20),
+            "system_recommendation": "Одобрить" if is_profitable else "Отклонить",
+            "is_profitable": is_profitable
+        }
+
+    def handle_event(self, event):
+        """Обработка событий мыши и рисования"""
+        mouse_pos = pygame.mouse.get_pos()
+
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            # Проверяем клик по области подписи
+            if self.drawing_area.collidepoint(mouse_pos):
+                self.is_drawing = True
+                self.last_pos = (mouse_pos[0] - self.drawing_area.x, mouse_pos[1] - self.drawing_area.y)
+
+            elif self.approve_button.is_clicked(mouse_pos):
+                if not self.signature_drawn:
+                    self.show_signature_warning = True
+                    self.warning_timer = pygame.time.get_ticks()
+                else:
+                    doc = self.documents[self.current_document_index]
+                    if doc["is_profitable"]:
+                        if self.current_document_index + 1 < len(self.documents):
+                            self.current_document_index += 1
+                        else:
+                            self.completed = True
+                    else:
+                        self.lives -= 1
+                        self.show_error_message = True
+                        self.error_start_time = pygame.time.get_ticks()
+                    self.reset_signature()
+
+            elif self.reject_button.is_clicked(mouse_pos):
+                doc = self.documents[self.current_document_index]
+                if not doc["is_profitable"]:
+                    if self.current_document_index + 1 < len(self.documents):
+                        self.current_document_index += 1
+                    else:
+                        self.completed = True
+                else:
+                    self.lives -= 1
+                    self.show_error_message = True
+                    self.error_start_time = pygame.time.get_ticks()
+                self.reset_signature()
+
+        elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+            self.is_drawing = False
+            self.last_pos = None
+            self.signature_drawn = self.check_signature()
+
+        elif event.type == pygame.MOUSEMOTION and self.is_drawing:
+            current_pos = (mouse_pos[0] - self.drawing_area.x, mouse_pos[1] - self.drawing_area.y)
+            if self.last_pos:
+                pygame.draw.line(self.signature_surface, BLACK, self.last_pos, current_pos, 3)
+            self.last_pos = current_pos
+
+        # Сброс предупреждения через время
+        if self.show_signature_warning and pygame.time.get_ticks() - self.warning_timer > self.warning_duration:
+            self.show_signature_warning = False
+
+        # Проверка завершения игры
+        if self.current_document_index >= len(self.documents):
+            self.completed = True
+        elif self.lives <= 0:
+            self.failed = True
+
+    def check_signature(self):
+        """Проверяет, есть ли подпись"""
+        for x in range(200):
+            for y in range(100):
+                if self.signature_surface.get_at((x, y)) != (255, 255, 255, 255):
+                    return True
+        return False
+
+    def reset_signature(self):
+        """Сбрасывает область подписи"""
+        self.signature_surface.fill(WHITE)
+        self.signature_drawn = False
+
+    def draw(self, screen):
+        """Отрисовка интерфейса миниигры"""
+        screen.fill((30, 31, 34))
+        font = pygame.font.Font(None, 28)
+        if self.current_document_index >= len(self.documents):
+            return  # Не рисуем ничего, если документы закончились
+        document = self.documents[self.current_document_index]
+
+        #  Создание поверхности документа
+        doc_width = 700
+        doc_height = 450
+        doc_x = (self.screen_size[0] - doc_width) // 2
+        doc_y = (self.screen_size[1] - doc_height) // 2 - 40
+
+        doc_surface = pygame.Surface((doc_width, doc_height))
+        doc_surface.fill((240, 240, 240))
+
+        # Рамка документа
+        pygame.draw.rect(doc_surface, BLACK, (0, 0, doc_width, doc_height), 3)
+
+        # Заголовок
+        title_font = pygame.font.SysFont(None, 30)
+        title_text = title_font.render("Информация о сделке", True, BLACK)
+        doc_surface.blit(title_text, (doc_width // 2 - title_text.get_width() // 2, 20))
+
+        # Номер документа
+        number_font = pygame.font.SysFont(None, 20)
+        number_text = number_font.render(f"Документ #{self.current_document_index + 1} из {len(self.documents)}", True, (80, 80, 80))
+        doc_surface.blit(number_text, (doc_width - number_text.get_width() - 30, 30))
+
+        # Информационные строки
+        info_font = pygame.font.SysFont(None, 24)
+        info_lines = [
+            f"Клиент: {document['client_name']}",
+            f"Тип сделки: {document['deal_type']}",
+            f"Сумма: {document['amount']} $",
+            f"Регион: {document['region']}",
+            f"Рейтинг доверия: {'I' * document['trust_rating']}",
+            f"Уровень риска: {document['risk_level']}",
+            f"Рекомендация системы: {document['system_recommendation']}",
+            f"Жизни: {self.lives}"
+        ]
+
+        y_offset = 80
+        for line in info_lines:
+            text_surface = info_font.render(line, True, BLACK)
+            doc_surface.blit(text_surface, (40, y_offset))
+            y_offset += 30
+
+        # Расчёт области подписи по центру документа
+        signature_width = self.signature_surface.get_width()
+        signature_height = self.signature_surface.get_height()
+
+        signature_x = (doc_width - signature_width) // 2
+        signature_y = y_offset + 25
+
+        signature_rect_in_doc = pygame.Rect(signature_x, signature_y, signature_width, signature_height)
+
+        # Рисуем рамку вокруг области подписи
+        pygame.draw.rect(doc_surface, BLACK, signature_rect_in_doc, 2)
+
+        # Рисуем подпись внутри документа
+        doc_surface.blit(self.signature_surface, signature_rect_in_doc.topleft)
+
+        # Сообщение "Подпись обязательна!" над областью подписи
+        if self.show_signature_warning:
+            warning_text = info_font.render("Подпись обязательна!", True, RED)
+            warning_x = signature_rect_in_doc.x + signature_rect_in_doc.width // 2 - warning_text.get_width() // 2
+            warning_y = signature_rect_in_doc.y - 30
+            doc_surface.blit(warning_text, (warning_x, warning_y))
+
+        # Вставляем документ на экран
+        screen.blit(doc_surface, (doc_x, doc_y))
+
+        self.drawing_area.x = doc_x + signature_rect_in_doc.x
+        self.drawing_area.y = doc_y + signature_rect_in_doc.y
+
+        # Сообщение об ошибке
+        if self.show_error_message and pygame.time.get_ticks() - self.error_start_time < self.error_duration:
+            error_text = font.render("Ошибка, повторите операцию", True, RED)
+            error_x = (self.screen_size[0] - error_text.get_width()) // 2
+            error_y = doc_y + doc_height + 20
+            screen.blit(error_text, (error_x, error_y))
+        else:
+            self.show_error_message = False
+
+        # Отрисовка кнопок
+        self.approve_button.draw(screen)
+        self.reject_button.draw(screen)
+
+    def is_completed(self):
+        return self.completed
+
+    def is_failed(self):
         return self.failed

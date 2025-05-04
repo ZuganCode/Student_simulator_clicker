@@ -3,7 +3,7 @@ import random
 import sys
 import os
 from data import PLOT_EVENTS, ENDING_ARMY, ENDING_PRISON, ENDING_BORING_JOB, ENDING_DREAM, SUMMER_1, SUMMER_2, SUMMER_3, HNY, PROLOGUE_DATA
-from game_objects import Event, Ending, DeliveryMinigame, FreelanceCodeMinigame, TradingMinigame
+from game_objects import Event, Ending, DeliveryMinigame, FreelanceCodeMinigame, TradingMinigame, P2PMinigame
 os.environ['SDL_VIDEO_CENTERED'] = '1'
 import pygame
 from pygame.locals import RESIZABLE
@@ -532,19 +532,19 @@ class Game:
                     # для команды необходимо хотя бы 2
                     {"name": "Дроповод", "price": 2000, "desc": "+3% от баланса  (Требуется 200 энергии)", "icon": "stocks.png", "energy_cost": 200},
                     # для команды необходим хотя бы 1(на 2 человека)
-                    {"name": "Мерчант Биржи", "price": 10000, "desc": "+10% от баланса", "icon": "stocks.png"},
+                    {"name": "Мерчант Биржи", "price": 10000, "desc": "+10% от баланса", "icon": "stocks.png",  "energy_cost": 0},
                     {"name": "Обучение связке", "price": 3000, "desc": "+6% от баланса  (Требуется 500 энергии)", "icon": "stocks.png", "energy_cost": 500},
-                    {"name": "Увеличить баланс", "price": 1000, "desc": "+1000 к балансу", "icon": "stocks.png"},
-                    {"name": "Телефон", "price": 1500, "desc": "+5% от баланса", "icon": "stocks.png"}
+                    {"name": "Увеличить баланс", "price": 1000, "desc": "+1000 к балансу", "icon": "stocks.png",  "energy_cost": 0},
+                    {"name": "Телефон", "price": 1500, "desc": "+5% от баланса", "icon": "stocks.png",  "energy_cost": 0}
                 ],
                 "Обработка трафика": [
                     {"name": "Нанять сотрудника", "price": 4000, "desc": "+10% от баланса  (Требуется 200 энергии)", "icon": "stocks.png", "energy_cost": 200},
                     # для команды необходимо хотя бы 2
                     {"name": "Дроповод", "price": 2000, "desc": "+5% от баланса  (Требуется 200 энергии)", "icon": "stocks.png", "energy_cost": 200},
                     # для команды необходим хотя бы 1(на 2 человека)
-                    {"name": "Телефон", "price": 1500, "desc": "+5% от баланса", "icon": "stocks.png"},
-                    {"name": "Увеличить баланс", "price": 1000, "desc": "+1000 к балансу", "icon": "stocks.png"},
-                    {"name": "Мерчант Площадки", "price": 10000, "desc": "+5% от баланса", "icon": "stocks.png"}
+                    {"name": "Телефон", "price": 1500, "desc": "+5% от баланса", "icon": "stocks.png",  "energy_cost": 0},
+                    {"name": "Увеличить баланс", "price": 1000, "desc": "+1000 к балансу", "icon": "stocks.png",  "energy_cost": 0},
+                    {"name": "Мерчант Площадки", "price": 10000, "desc": "+5% от баланса", "icon": "stocks.png",  "energy_cost": 0}
                 ],
                 "Трейдинг": [
                     {"name": "Курс 'Понятие рынка'", "price": 2500, "desc": "Высокий риск, возможен ×3  (Требуется 500 энергии)", "icon": "futures.png", "energy_cost": 500},
@@ -552,7 +552,7 @@ class Game:
                 ]
             },
             "Улучшения": [
-                {"name": "Нормальная еда", "price": 100, "desc": "даёт +100 к максимуму энергии", "icon": "food.png"},
+                {"name": "Нормальная еда", "price": 100, "desc": "даёт +100 к максимуму энергии", "icon": "food.png",  "energy_cost": 0},
             ]
         }
         self.current_shop_category = "Активный заработок"
@@ -568,6 +568,11 @@ class Game:
             "Мечта о покупке дорогой вещи мотивирует вас."
         ]
         self.update_button_positions(pygame.display.get_surface().get_size())
+
+        self.has_shown_tutorial = False
+        self.has_shown_tutorial_f = False
+        self.has_shown_tutorial_t = False
+        self.has_shown_tutorial_p2p = False
 
 
     def update_screen_size(self):
@@ -1102,9 +1107,10 @@ class Game:
             "purchased_items": list(self.purchased_items),
             "current_month_day": self.current_month_day,
 
-            "has_shown_tutorial": self.work_manager.has_shown_tutorial,
-            "has_shown_tutorial_f": self.work_manager.has_shown_tutorial_f,
-            "has_shown_tutorial_t": self.work_manager.has_shown_tutorial_t
+            "has_shown_tutorial": self.has_shown_tutorial,
+            "has_shown_tutorial_f": self.has_shown_tutorial_f,
+            "has_shown_tutorial_t": self.has_shown_tutorial_t,
+            "has_shown_tutorial_p2p": self.has_shown_tutorial_p2p
         }
         with open("save.json", "w") as f:
             json.dump(data, f)
@@ -1176,9 +1182,10 @@ class Game:
                 # Загрузка купленных предметов
                 self.purchased_items = set(data.get("purchased_items", []))
 
-                self.work_manager.has_shown_tutorial = data.get("has_shown_tutorial", False)
-                self.work_manager.has_shown_tutorial_f = data.get("has_shown_tutorial_f", False)
-                self.work_manager.has_shown_tutorial_t = data.get("has_shown_tutorial_t", False)
+                self.has_shown_tutorial = data.get("has_shown_tutorial", False)
+                self.has_shown_tutorial_f = data.get("has_shown_tutorial_f", False)
+                self.has_shown_tutorial_t = data.get("has_shown_tutorial_t", False)
+                self.has_shown_tutorial_p2p = data.get("has_shown_tutorial_p2p", False)
 
         except FileNotFoundError:
             print("Сохранение не найдено. Начинаем новую игру.")
@@ -1186,74 +1193,6 @@ class Game:
 
     def whats_day(self):
         return self.total_days
-
-
-    def play_delivery_game(self, order_salary):
-        """Мини-игра доставки"""
-        delivery_game = DeliveryMinigame(self.screen_size, order_salary)
-        clock = pygame.time.Clock()
-        running = True
-        message_start_time = 0  # Время начала показа сообщения
-        message_duration = 3000
-        game_result = None  # Результат игры (None, "completed", "crashed", "timeout")
-
-        while running:
-            keys = pygame.key.get_pressed()
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-                    break
-                elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_ESCAPE:
-                        running = False
-                        break
-
-            delivery_game.update(keys)
-
-            # Проверяем условия завершения игры
-            if delivery_game.is_completed():
-                game_result = "completed"
-                running = False
-            elif delivery_game.is_crashed():
-                game_result = "crashed"
-                running = False
-            elif delivery_game.is_timeout:
-                game_result = "timeout"
-                running = False
-
-            screen.fill(BLACK)
-            delivery_game.draw(screen)
-            pygame.display.flip()
-            clock.tick(10)
-
-        # Обработка результата игры
-        if game_result == "completed":
-            self.add_money(order_salary)  # Добавляем деньги за успешную доставку
-            self.energy -= 100  # Снижаем энергию за игру
-            self.set_current_plot_text(f"Вы доставили заказ и получили {order_salary}$")
-        elif game_result in ["crashed", "timeout"]:
-            if game_result == "crashed":
-                order_salary = - order_salary
-                order_salary /= 2
-                self.set_current_plot_text(f"Вы повредили заказ и вам полагается штраф {order_salary}$")
-                self.add_money(order_salary)
-            elif game_result == "timeout":
-                self.set_current_plot_text("Время вышло... Вы не смогли доставить заказ.")
-            self.energy -= 100  # Наказание за провал
-
-        # Установка времени начала показа сообщения
-        message_start_time = pygame.time.get_ticks()
-
-        # Показываем сообщение дольше
-        while pygame.time.get_ticks() - message_start_time < message_duration:
-            screen.fill(BLACK)
-            if self.current_plot_text:
-                text_surface = MAIN_FONT.render(self.current_plot_text, True, WHITE)
-                screen.blit(text_surface, (
-                    self.screen_size[0] // 2 - text_surface.get_width() // 2,
-                    self.screen_size[1] // 2 - text_surface.get_height() // 2))
-            pygame.display.flip()
-            clock.tick(10)
 
 
     def show_delivery_tutorial(self, screen):
@@ -1275,8 +1214,8 @@ class Game:
         ]
 
         font = MAIN_FONT
-        text_height = font.get_height() + 10  # Отступ между строками
-        y_offset = 50  # Начальная позиция по Y
+        text_height = font.get_height() + 10
+        y_offset = 50
 
         # Отрисовываем текст обучения
         for line in tutorial_text:
@@ -1329,8 +1268,8 @@ class Game:
         ]
 
         font = MAIN_FONT
-        text_height = font.get_height() + 10  # Отступ между строками
-        y_offset = 50  # Начальная позиция по Y
+        text_height = font.get_height() + 10  
+        y_offset = 50
 
         # Отрисовываем текст обучения
         for line in tutorial_text:
@@ -1385,8 +1324,8 @@ class Game:
         ]
 
         font = MAIN_FONT
-        text_height = font.get_height() + 10  # Отступ между строками
-        y_offset = 50  # Начальная позиция по Y
+        text_height = font.get_height() + 10
+        y_offset = 50
 
         # Отрисовываем текст обучения
         for line in tutorial_text:
@@ -1421,12 +1360,77 @@ class Game:
             pygame.display.flip()
             clock.tick(10)
 
-    def play_freelance_game(self, order_salary):
-        """Мини-игра Фриланса"""
+    def show_p2p_tutorial(self, screen):
+        """Отображает обучение для мини-игры Трейдинга"""
+        tutorial_running = True
+        clock = pygame.time.Clock()
+
+        # Заливка фона
+        screen.fill(BLACK)
+
+        # Создаем поверхность для текста обучения
+        tutorial_text = [
+            "Правила мини-игры P2P:",
+            "Вы будете проверять документы клиентов.",
+            "",
+            "Вам нужно решить: одобрить или отклонить сделку.",
+            "Решение принимается на основе информации о клиенте:",
+            "- Рейтинг доверия",
+            "- Уровень риска",
+            "",
+            "Чтобы одобрить — подпишите документ мышью внутри области.",
+            "Подпись обязательна для подтверждения решения!",
+            "",
+            "У вас есть 3 жизни. За каждую ошибку теряется одна жизнь.",
+            "Если жизни закончатся — вы получите штраф.",
+            "",
+            "Система может давать рекомендации...",
+            "...но не всегда стоит ей слепо доверять."
+        ]
+
+        font = MAIN_FONT
+        text_height = font.get_height() + 10
+        y_offset = 50
+
+        # Отрисовываем текст обучения
+        for line in tutorial_text:
+            text_surface = font.render(line, True, WHITE)
+            text_rect = text_surface.get_rect(center=(self.screen_size[0] // 2, y_offset))
+            screen.blit(text_surface, text_rect)
+            y_offset += text_height
+
+        # Кнопка "Начать игру"
+        start_button = Button(
+            self.screen_size[0] // 2 - 100,
+            self.screen_size[1] - 100,
+            200,
+            50,
+            "Начать игру",
+            GREEN,
+            WHITE
+        )
+        start_button.draw(screen)
+
+        # Основной цикл туториала
+        while tutorial_running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    mouse_pos = pygame.mouse.get_pos()
+                    if start_button.is_clicked(mouse_pos):
+                        tutorial_running = False  # Завершаем туториал
+
+            pygame.display.flip()
+            clock.tick(10)
+
+    def play_delivery_game(self, order_salary):
+        """Мини-игра доставки"""
         # Проверяем, нужно ли показать обучение
-        if not self.work_manager.has_shown_tutorial_f:
-            self.show_freelance_tutorial(screen)
-            self.work_manager.has_shown_tutorial_f = True
+        if not self.has_shown_tutorial:
+            self.show_delivery_tutorial(screen)
+            self.has_shown_tutorial = True
 
         # Вычисляем energy_cost на основе зарплаты
         energy_cost = (
@@ -1438,11 +1442,93 @@ class Game:
         if self.energy < energy_cost:
             self.set_current_plot_text("Недостаточно энергии!")
             return
-        freelance_game = FreelanceCodeMinigame(self.screen_size, order_salary)
+        delivery_game = DeliveryMinigame(self.screen_size)
+        clock = pygame.time.Clock()
+        running = True
+        message_start_time = 0
+        message_duration = 3000
+        game_result = None
+
+        while running:
+            keys = pygame.key.get_pressed()
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                    break
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        running = False
+                        break
+
+            delivery_game.update(keys)
+
+            # Проверяем условия завершения игры
+            if delivery_game.is_completed():
+                game_result = "completed"
+                running = False
+            elif delivery_game.is_crashed():
+                game_result = "crashed"
+                running = False
+            elif delivery_game.is_timeout:
+                game_result = "timeout"
+                running = False
+
+            screen.fill(BLACK)
+            delivery_game.draw(screen)
+            pygame.display.flip()
+            clock.tick(10)
+
+        # Обработка результата игры
+        if game_result == "completed":
+            self.add_money(order_salary)
+            self.energy -= 100
+            self.set_current_plot_text(f"Вы доставили заказ и получили {order_salary}$")
+        elif game_result in ["crashed", "timeout"]:
+            if game_result == "crashed":
+                order_salary = - order_salary
+                order_salary /= 2
+                self.set_current_plot_text(f"Вы повредили заказ и вам полагается штраф {order_salary}$")
+                self.add_money(order_salary)
+            elif game_result == "timeout":
+                self.set_current_plot_text("Время вышло... Вы не смогли доставить заказ.")
+            self.energy -= 100
+
+        # Установка времени начала показа сообщения
+        message_start_time = pygame.time.get_ticks()
+
+        # Показываем сообщение дольше
+        while pygame.time.get_ticks() - message_start_time < message_duration:
+            screen.fill(BLACK)
+            if self.current_plot_text:
+                text_surface = MAIN_FONT.render(self.current_plot_text, True, WHITE)
+                screen.blit(text_surface, (
+                    self.screen_size[0] // 2 - text_surface.get_width() // 2,
+                    self.screen_size[1] // 2 - text_surface.get_height() // 2))
+            pygame.display.flip()
+            clock.tick(10)
+
+    def play_freelance_game(self, order_salary):
+        """Мини-игра Фриланса"""
+        # Проверяем, нужно ли показать обучение
+        if not self.has_shown_tutorial_f:
+            self.show_freelance_tutorial(screen)
+            self.has_shown_tutorial_f = True
+
+        # Вычисляем energy_cost на основе зарплаты
+        energy_cost = (
+            100 if order_salary <= 1000 else
+            200 if order_salary <= 5000 else 300
+        )
+
+        # Проверяем достаточно ли энергии перед запуском мини-игры
+        if self.energy < energy_cost:
+            self.set_current_plot_text("Недостаточно энергии!")
+            return
+        freelance_game = FreelanceCodeMinigame(self.screen_size)
         freelance_game.start_game()
         clock = pygame.time.Clock()
         running = True
-        message_start_time = 0  # Время начала показа сообщения
+        message_start_time = 0
         message_duration = 3000
 
         while running:
@@ -1471,14 +1557,14 @@ class Game:
 
         # Обработка результата игры
         if freelance_game.is_completed():
-            self.add_money(order_salary)  # Добавляем деньги за успешное выполнение
-            self.energy -= energy_cost  # Снижаем энергию за игру
+            self.add_money(order_salary)
+            self.energy -= energy_cost
             self.set_current_plot_text(f"Вы выполнили заказ и получили {order_salary}$")
         elif freelance_game.is_failed():
             order_salary = - order_salary
             order_salary /= 2
             self.set_current_plot_text(f"Время вышло... Вы не смогли завершить проект и вам полагается штраф {order_salary}$")
-            self.energy -= energy_cost  # Вычитаем энергию даже при провале
+            self.energy -= energy_cost
             self.add_money(order_salary)
 
         # Установка времени начала показа сообщения
@@ -1498,18 +1584,18 @@ class Game:
     def play_trading_game(self, order_salary):
         """Мини-игра Трейдинга"""
         # Проверяем, нужно ли показать обучение
-        if not self.work_manager.has_shown_tutorial_t:
+        if not self.has_shown_tutorial_t:
             self.show_trading_tutorial(screen)
-            self.work_manager.has_shown_tutorial_t = True
+            self.has_shown_tutorial_t = True
 
         energy_cost = (100 if order_salary <= 1000 else 200 if order_salary <= 5000 else 300)
-        if self.energy < energy_cost: # Проверяем достаточно ли энергии перед запуском мини-игры
+        if self.energy < energy_cost:
             self.set_current_plot_text("Недостаточно энергии!")
             return
-        trading_game = TradingMinigame(self.screen_size, order_salary)
+        trading_game = TradingMinigame(self.screen_size)
         clock = pygame.time.Clock()
         running = True
-        message_start_time = 0  # Время начала показа сообщения
+        message_start_time = 0
         message_duration = 3000
 
         while running:
@@ -1535,14 +1621,14 @@ class Game:
 
             # Обработка результата игры
         if trading_game.is_completed():
-            self.add_money(order_salary)  # Добавляем деньги за успешное выполнение
-            self.energy -= energy_cost  # Снижаем энергию за игру
+            self.add_money(order_salary)
+            self.energy -= energy_cost
             self.set_current_plot_text(f"Вы успешно заработали {order_salary}$")
         elif trading_game.is_failed():
             order_salary = - order_salary
             order_salary /= 2
             self.set_current_plot_text(f"Вы не смогли увеличить свой баланс. Вам полагается штраф {order_salary}$")
-            self.energy -= energy_cost  # Вычитаем энергию даже при провале
+            self.energy -= energy_cost
             self.add_money(order_salary)
 
             # Установка времени начала показа сообщения
@@ -1559,18 +1645,72 @@ class Game:
             pygame.display.flip()
             clock.tick(10)
 
+    def play_p2p_game(self, order_salary):
+        """Мини-игра P2P"""
+        # Проверяем, нужно ли показать обучение
+        if not self.has_shown_tutorial_p2p:
+            self.show_p2p_tutorial(screen)
+            self.has_shown_tutorial_p2p = True
+
+        energy_cost = (100 if order_salary <= 1000 else 200 if order_salary <= 5000 else 300)
+        if self.energy < energy_cost:
+            self.set_current_plot_text("Недостаточно энергии!")
+            return
+
+        p2p_game = P2PMinigame(self.screen_size, Button)
+        clock = pygame.time.Clock()
+        running = True
+        message_start_time = 0
+        message_duration = 3000
+
+        while running:
+            keys = pygame.key.get_pressed()
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                p2p_game.handle_event(event)
+
+            screen.fill(BLACK)
+            p2p_game.draw(screen)
+            pygame.display.flip()
+            clock.tick(30)
+
+            if p2p_game.is_completed() or p2p_game.is_failed():
+                running = False
+
+            # Обработка результата игры
+        if p2p_game.is_completed():
+            self.add_money(order_salary)
+            self.energy -= energy_cost
+            self.set_current_plot_text(f"Вы приняли верное решение для каждой сделки и получили {order_salary}$")
+        elif p2p_game.is_failed():
+            order_salary = - order_salary
+            order_salary /= 2
+            self.set_current_plot_text(f"Вы допустили слишком много ошибок. Вам полагается штраф {order_salary}$")
+            self.energy -= energy_cost
+            self.add_money(order_salary)
+
+            # Установка времени начала показа сообщения
+        message_start_time = pygame.time.get_ticks()
+
+        # Показываем сообщение дольше
+        while pygame.time.get_ticks() - message_start_time < message_duration:
+            screen.fill(BLACK)
+            if self.current_plot_text:
+                text_surface = MAIN_FONT.render(self.current_plot_text, True, WHITE)
+                screen.blit(text_surface, (
+                    self.screen_size[0] // 2 - text_surface.get_width() // 2,
+                    self.screen_size[1] // 2 - text_surface.get_height() // 2))
+            pygame.display.flip()
+            clock.tick(10)
+
+
 class WorkManager:
     def __init__(self, screen_size):
         self.screen_size = screen_size
         self.work_categories = ["Курьерство", "Фриланс", "Трейдинг", "P2P"]
         self.current_category = "Курьерство"
         self.selected_order = None
-        self.has_shown_tutorial = False
-        self.has_shown_tutorial_f = False
-        self.has_shown_tutorial_t = False
-
-
-
 
         # Новая структура данных для заказов
         self.orders = {
@@ -1681,21 +1821,13 @@ class WorkManager:
             order_rect = pygame.Rect(50, 50 + i * 100, game.screen_size[0] - 100, 90)
             if order_rect.collidepoint(mouse_pos):
                 if self.current_category == "Курьерство":
-                    if not self.has_shown_tutorial:
-                        # Показываем обучение только при первом запуске
-                        game.show_delivery_tutorial(screen)
-                        self.has_shown_tutorial = True
-                    # Проверяем достаточно ли энергии
-                    if game.energy >= 100:  # Фиксированная стоимость энергии для курьерства
-                        game.play_delivery_game(order['salary'])  # Запускаем мини-игру
-                        return True
-                    else:
-                        game.set_current_plot_text("Недостаточно энергии!")
-                        return False
+                    game.play_delivery_game(order['salary'])
                 elif self.current_category == "Фриланс":
-                    game.play_freelance_game(order['salary'])  # Запускаем мини-игру Фриланса
+                    game.play_freelance_game(order['salary'])
                 elif self.current_category == "Трейдинг":
                     game.play_trading_game(order['salary'])
+                elif self.current_category == "P2P":
+                    game.play_p2p_game(order['salary'])
                 else:
                     # Для других категорий работ
                     energy_cost = 100 if order['salary'] <= 1000 else \
@@ -1788,6 +1920,13 @@ class WorkManager:
             screen.blit(energy_icon, (400, 5))
         energy_text = MAIN_FONT.render(f"{game.energy}/{game.max_energy}", True, WHITE)
         screen.blit(energy_text, (450, 10))
+
+        if game.current_plot_text:
+            font = pygame.font.Font(None, 36)
+            text = font.render(game.current_plot_text, True, WHITE)
+            screen.blit(text, (50, 45))
+
+
 
         for i, category in enumerate(self.work_categories):
             color = GREEN if category == self.current_category else BLUE
