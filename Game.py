@@ -1425,7 +1425,7 @@ class Game:
             pygame.display.flip()
             clock.tick(10)
 
-    def play_delivery_game(self, order_salary):
+    def play_delivery_game(self, order_salary, order=None):
         """Мини-игра доставки"""
         # Проверяем, нужно ли показать обучение
         if not self.has_shown_tutorial:
@@ -1481,7 +1481,11 @@ class Game:
         # Обработка результата игры
         if game_result == "completed":
             self.add_money(order_salary)
-            self.energy -= 100
+            self.energy -= energy_cost
+            # Удаляем выполненный заказ и генерируем новый
+            if order in self.work_manager.orders[self.work_manager.current_category]:
+                self.work_manager.orders[self.work_manager.current_category].remove(order)
+                self.work_manager.generate_new_order(self.work_manager.current_category)
             self.set_current_plot_text(f"Вы доставили заказ и получили {order_salary}$")
         elif game_result in ["crashed", "timeout"]:
             if game_result == "crashed":
@@ -1507,7 +1511,7 @@ class Game:
             pygame.display.flip()
             clock.tick(10)
 
-    def play_freelance_game(self, order_salary):
+    def play_freelance_game(self, order_salary, order=None):
         """Мини-игра Фриланса"""
         # Проверяем, нужно ли показать обучение
         if not self.has_shown_tutorial_f:
@@ -1559,6 +1563,10 @@ class Game:
         if freelance_game.is_completed():
             self.add_money(order_salary)
             self.energy -= energy_cost
+            # Удаляем выполненный заказ и генерируем новый
+            if order in self.work_manager.orders[self.work_manager.current_category]:
+                self.work_manager.orders[self.work_manager.current_category].remove(order)
+                self.work_manager.generate_new_order(self.work_manager.current_category)
             self.set_current_plot_text(f"Вы выполнили заказ и получили {order_salary}$")
         elif freelance_game.is_failed():
             order_salary = - order_salary
@@ -1581,7 +1589,7 @@ class Game:
             pygame.display.flip()
             clock.tick(10)
 
-    def play_trading_game(self, order_salary):
+    def play_trading_game(self, order_salary, order=None):
         """Мини-игра Трейдинга"""
         # Проверяем, нужно ли показать обучение
         if not self.has_shown_tutorial_t:
@@ -1623,6 +1631,10 @@ class Game:
         if trading_game.is_completed():
             self.add_money(order_salary)
             self.energy -= energy_cost
+            # Удаляем выполненный заказ и генерируем новый
+            if order in self.work_manager.orders[self.work_manager.current_category]:
+                self.work_manager.orders[self.work_manager.current_category].remove(order)
+                self.work_manager.generate_new_order(self.work_manager.current_category)
             self.set_current_plot_text(f"Вы успешно заработали {order_salary}$")
         elif trading_game.is_failed():
             order_salary = - order_salary
@@ -1645,7 +1657,7 @@ class Game:
             pygame.display.flip()
             clock.tick(10)
 
-    def play_p2p_game(self, order_salary):
+    def play_p2p_game(self, order_salary, order=None):
         """Мини-игра P2P"""
         # Проверяем, нужно ли показать обучение
         if not self.has_shown_tutorial_p2p:
@@ -1682,6 +1694,10 @@ class Game:
         if p2p_game.is_completed():
             self.add_money(order_salary)
             self.energy -= energy_cost
+            # Удаляем выполненный заказ и генерируем новый
+            if order in self.work_manager.orders[self.work_manager.current_category]:
+                self.work_manager.orders[self.work_manager.current_category].remove(order)
+                self.work_manager.generate_new_order(self.work_manager.current_category)
             self.set_current_plot_text(f"Вы приняли верное решение для каждой сделки и получили {order_salary}$")
         elif p2p_game.is_failed():
             order_salary = - order_salary
@@ -1821,29 +1837,13 @@ class WorkManager:
             order_rect = pygame.Rect(50, 50 + i * 100, game.screen_size[0] - 100, 90)
             if order_rect.collidepoint(mouse_pos):
                 if self.current_category == "Курьерство":
-                    game.play_delivery_game(order['salary'])
+                    game.play_delivery_game(order['salary'], order=order)
                 elif self.current_category == "Фриланс":
-                    game.play_freelance_game(order['salary'])
+                    game.play_freelance_game(order['salary'], order=order)
                 elif self.current_category == "Трейдинг":
-                    game.play_trading_game(order['salary'])
-                elif self.current_category == "P2P":
-                    game.play_p2p_game(order['salary'])
+                    game.play_trading_game(order['salary'], order=order)
                 else:
-                    # Для других категорий работ
-                    energy_cost = 100 if order['salary'] <= 1000 else \
-                        200 if order['salary'] <= 5000 else 300
-                    if game.energy >= energy_cost:
-                        game.add_money(order['salary'])
-                        game.energy -= energy_cost
-                        self.orders[self.current_category].remove(order)
-                        self.generate_new_order(self.current_category)
-                        game.set_current_plot_text(
-                            f"Вы выполнили заказ: {order['name']} и получили {order['salary']}$"
-                        )
-                        return True
-                    else:
-                        game.set_current_plot_text("Недостаточно энергии!")
-                        return False
+                    game.play_p2p_game(order['salary'], order=order)
         return False
 
     def generate_new_order(self, category):
@@ -1921,11 +1921,13 @@ class WorkManager:
         energy_text = MAIN_FONT.render(f"{game.energy}/{game.max_energy}", True, WHITE)
         screen.blit(energy_text, (450, 10))
 
-        if game.current_plot_text:
+        if game.current_plot_text == "Недостаточно энергии!":
             font = pygame.font.Font(None, 36)
             text = font.render(game.current_plot_text, True, WHITE)
-            screen.blit(text, (50, 45))
-
+            text_rect = text.get_rect(topleft=(50, 45))
+            screen.blit(text, text_rect)
+            pygame.display.update(text_rect)
+            pygame.time.wait(1000)
 
 
         for i, category in enumerate(self.work_categories):
